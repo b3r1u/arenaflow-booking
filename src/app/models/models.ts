@@ -31,6 +31,7 @@ export interface Court {
 export interface Booking {
   id: string;
   arena_id: string;
+  user_uid: string;
   client_name: string;
   client_phone?: string;
   court_id: string;

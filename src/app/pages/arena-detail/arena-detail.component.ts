@@ -542,8 +542,8 @@ import { Arena, Booking, Court } from '../../models/models';
               </div>
             </div>
 
-            <!-- Dividir pagamento -->
-            <div style="border-top:1px solid var(--border);padding-top:1rem">
+            <!-- Dividir pagamento — só disponível no pagamento total -->
+            <div style="border-top:1px solid var(--border);padding-top:1rem" *ngIf="form.payment_option === '100'">
               <div class="flex items-center justify-between mb-3">
                 <div>
                   <div class="text-sm font-semibold" style="color:var(--foreground)">Dividir pagamento?</div>
@@ -580,7 +580,7 @@ import { Arena, Booking, Court } from '../../models/models';
           <h3 class="font-heading font-semibold text-sm mb-3" style="color:var(--foreground)">Como deseja pagar?</h3>
           <div class="space-y-2 mb-4">
             <!-- 50% -->
-            <div (click)="form.payment_option = '50'" class="card p-4 cursor-pointer flex items-center gap-3"
+            <div (click)="form.payment_option = '50'; form.split_payment = false" class="card p-4 cursor-pointer flex items-center gap-3"
                  [style]="form.payment_option === '50' ? 'border-color:var(--primary);border-width:2px' : 'border-width:1.5px'">
               <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm"
                    [style]="form.payment_option === '50' ? 'background:var(--primary);color:white' : 'background:var(--muted);color:var(--muted-foreground)'">50%</div>
@@ -824,6 +824,7 @@ export class ArenaDetailComponent implements OnInit {
     const status = this.form.payment_option === '100' ? 'pago' : 'parcial';
     const booking = this.data.addBooking({
       arena_id:        this.arena.id,
+      user_uid:        this.auth.user()?.uid || '',
       client_name:     this.form.client_name,
       client_phone:    this.form.client_phone,
       court_id:        this.form.court_id,
