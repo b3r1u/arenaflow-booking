@@ -98,7 +98,7 @@ type View = 'search' | 'arena' | 'my-bookings';
         </header>
 
         <!-- Overlay para fechar menu -->
-        <div *ngIf="menuOpen" class="fixed inset-0 z-40" (click)="menuOpen = false"></div>
+        <div *ngIf="menuOpen" class="fixed inset-0 z-20" (click)="menuOpen = false"></div>
 
         <!-- Views -->
         <app-search       *ngIf="view === 'search'"     (select)="openArena($event)"></app-search>
