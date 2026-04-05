@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Fundo verde arredondado -->
+  <rect width="64" height="64" rx="14" fill="#1a7a3f"/>
+
+  <!-- Bola de vôlei de praia (círculo externo) -->
+  <circle cx="32" cy="30" r="14" fill="none" stroke="white" stroke-width="2.5"/>
+
+  <!-- Seam superior: arco horizontal -->
+  <path d="M18.5 26 Q32 20 45.5 26"
+        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Seam esquerdo: desce para baixo-direita -->
+  <path d="M18.5 26 Q22 33 25 43"
+        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Seam direito: desce para baixo-esquerda -->
+  <path d="M45.5 26 Q42 33 39 43"
+        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+
+  <!-- Rede embaixo (3 linhas verticais + linha horizontal) -->
+  <line x1="20" y1="48" x2="44" y2="48" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <line x1="26" y1="48" x2="26" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="32" y1="48" x2="32" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="38" y1="48" x2="38" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="20" y1="56" x2="44" y2="56" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>
