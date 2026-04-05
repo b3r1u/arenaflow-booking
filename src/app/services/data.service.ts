@@ -82,9 +82,9 @@ export class DataService {
   ]);
 
   private bookingsSubject = new BehaviorSubject<Booking[]>([
-    { id: 'b1', arena_id: '1', client_name: 'Lucas Silva',  court_id: 'c1a1', date: new Date().toISOString().split('T')[0], start_hour: '09:00', end_hour: '10:00', payment_status: 'pago',     total_amount: 80 },
-    { id: 'b2', arena_id: '1', client_name: 'Ana Costa',    court_id: 'c2a1', date: new Date().toISOString().split('T')[0], start_hour: '11:00', end_hour: '13:00', payment_status: 'pago',     total_amount: 200 },
-    { id: 'b3', arena_id: '2', client_name: 'Pedro Rocha',  court_id: 'c1a2', date: new Date().toISOString().split('T')[0], start_hour: '18:00', end_hour: '20:00', payment_status: 'pendente', total_amount: 180 },
+    { id: 'b1', arena_id: '1', client_name: 'Lucas Silva',  court_id: 'c1a1', date: new Date().toISOString().split('T')[0], start_hour: '09:00', end_hour: '10:00', payment_status: 'pago',    total_amount: 80,  paid_amount: 80,  payment_option: '100' },
+    { id: 'b2', arena_id: '1', client_name: 'Ana Costa',    court_id: 'c2a1', date: new Date().toISOString().split('T')[0], start_hour: '11:00', end_hour: '13:00', payment_status: 'pago',    total_amount: 200, paid_amount: 200, payment_option: '100' },
+    { id: 'b3', arena_id: '2', client_name: 'Pedro Rocha',  court_id: 'c1a2', date: new Date().toISOString().split('T')[0], start_hour: '18:00', end_hour: '20:00', payment_status: 'parcial', total_amount: 180, paid_amount: 90,  payment_option: '50' },
   ]);
 
   arenas$   = this.arenasSubject.asObservable();

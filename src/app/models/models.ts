@@ -37,9 +37,13 @@ export interface Booking {
   date: string;
   start_hour: string;
   end_hour: string;
-  payment_status: 'pago' | 'pendente';
+  payment_status: 'pago' | 'pendente' | 'parcial';
   total_amount: number;
+  paid_amount: number;
+  payment_option: '50' | '100';
   duration_hours?: number;
+  split_payment?: boolean;
+  num_players?: number;
 }
 
 export type DiaSemana = 'domingo' | 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado';

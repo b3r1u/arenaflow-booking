@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
 import { Arena, Booking, Court } from '../../models/models';
 
 @Component({
@@ -478,12 +479,13 @@ import { Arena, Booking, Court } from '../../models/models';
               <div>
                 <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Início</label>
                 <select class="select" [(ngModel)]="form.start_hour" (ngModelChange)="onSlotChange()">
-                  <option *ngFor="let h of hours" [value]="h">{{ h }}</option>
+                  <option *ngFor="let h of availableStartHours" [value]="h">{{ h }}</option>
                 </select>
               </div>
               <div>
                 <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Fim</label>
                 <select class="select" [(ngModel)]="form.end_hour" (ngModelChange)="onSlotChange()">
+                  <option value="" disabled>Selecione um horário de Fim</option>
                   <option *ngFor="let h of endHours" [value]="h">{{ h }}</option>
                 </select>
               </div>
@@ -503,7 +505,7 @@ import { Arena, Booking, Court } from '../../models/models';
             </div>
           </div>
 
-          <button class="btn-primary w-full py-3" (click)="step = 3"
+          <button class="btn-primary w-full py-3" (click)="goToStep3()"
                   [disabled]="slotConflict || durationHours <= 0">
             Continuar <span class="material-icons" style="font-size:1rem">arrow_forward</span>
           </button>
@@ -517,13 +519,20 @@ import { Arena, Booking, Court } from '../../models/models';
           <h2 class="font-heading font-bold text-base mb-4" style="color:var(--foreground)">Seus dados</h2>
 
           <div class="card p-5 space-y-4 mb-4">
+            <!-- Nome completo (pré-preenchido da conta) -->
             <div>
-              <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Nome completo *</label>
+              <label class="block text-sm font-semibold mb-1" style="color:var(--foreground)">Nome completo *</label>
+              <div class="text-xs mb-2" style="color:var(--muted-foreground)" *ngIf="auth.user()?.email">
+                <span class="material-icons" style="font-size:0.75rem;vertical-align:middle">info</span>
+                Baseado na conta: {{ auth.user()?.email }}
+              </div>
               <div style="position:relative">
                 <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">person</span>
                 <input class="input" style="padding-left:2.25rem" [(ngModel)]="form.client_name" placeholder="Seu nome completo">
               </div>
             </div>
+
+            <!-- Telefone -->
             <div>
               <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Telefone (WhatsApp)</label>
               <div style="position:relative">
@@ -532,21 +541,69 @@ import { Arena, Booking, Court } from '../../models/models';
                        placeholder="(00) 00000-0000" maxlength="15" (input)="onPhoneInput($event)">
               </div>
             </div>
-            <div class="flex items-center justify-between py-1" style="border-top:1px solid var(--border)">
-              <div>
-                <div class="text-sm font-semibold" style="color:var(--foreground)">Dividir pagamento?</div>
+
+            <!-- Dividir pagamento -->
+            <div style="border-top:1px solid var(--border);padding-top:1rem">
+              <div class="flex items-center justify-between mb-3">
                 <div>
-                  <input type="number" class="input mt-1" style="max-width:80px;padding:0.4rem 0.6rem;font-size:0.8rem"
-                         *ngIf="form.split_payment" [(ngModel)]="form.num_players" min="2" max="20">
-                  <div *ngIf="form.split_payment" class="text-xs mt-0.5" style="color:var(--primary)">
-                    R\${{ perPlayerAmount | number:'1.2-2' }} por jogador
+                  <div class="text-sm font-semibold" style="color:var(--foreground)">Dividir pagamento?</div>
+                  <div class="text-xs" style="color:var(--muted-foreground)">Divide o valor entre os jogadores</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" [(ngModel)]="form.split_payment">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div *ngIf="form.split_payment" class="rounded-2xl p-4" style="background:var(--muted)">
+                <div class="text-xs text-center font-semibold mb-3" style="color:var(--muted-foreground)">Nº DE JOGADORES</div>
+                <div class="flex items-center justify-between gap-4">
+                  <button (click)="form.num_players = form.num_players > 2 ? form.num_players - 1 : 2"
+                          class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg"
+                          style="background:var(--card);border:1.5px solid var(--border);color:var(--foreground)">−</button>
+                  <div class="text-center flex-1">
+                    <div class="font-heading font-bold text-3xl" style="color:var(--foreground)">{{ form.num_players }}</div>
+                    <div class="text-xs mt-0.5" style="color:var(--muted-foreground)">jogadores</div>
                   </div>
+                  <button (click)="form.num_players = form.num_players < 20 ? form.num_players + 1 : 20"
+                          class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg"
+                          style="background:var(--primary);color:white;border:none">+</button>
+                </div>
+                <div class="mt-3 rounded-xl p-2.5 text-center" style="background:hsl(152,69%,40%,0.1)">
+                  <span class="font-heading font-bold" style="color:var(--primary)">R\${{ perPlayerAmount | number:'1.2-2' }}</span>
+                  <span class="text-xs ml-1" style="color:var(--muted-foreground)">por jogador</span>
                 </div>
               </div>
-              <label class="toggle">
-                <input type="checkbox" [(ngModel)]="form.split_payment">
-                <span class="toggle-slider"></span>
-              </label>
+            </div>
+          </div>
+
+          <!-- Opção de pagamento: 50% ou 100% -->
+          <h3 class="font-heading font-semibold text-sm mb-3" style="color:var(--foreground)">Como deseja pagar?</h3>
+          <div class="space-y-2 mb-4">
+            <!-- 50% -->
+            <div (click)="form.payment_option = '50'" class="card p-4 cursor-pointer flex items-center gap-3"
+                 [style]="form.payment_option === '50' ? 'border-color:var(--primary);border-width:2px' : 'border-width:1.5px'">
+              <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm"
+                   [style]="form.payment_option === '50' ? 'background:var(--primary);color:white' : 'background:var(--muted);color:var(--muted-foreground)'">50%</div>
+              <div class="flex-1">
+                <div class="font-semibold text-sm" style="color:var(--foreground)">Reservar com entrada</div>
+                <div class="text-xs" style="color:var(--muted-foreground)">Pague <strong style="color:var(--primary)">R\${{ form.total_amount / 2 | number:'1.2-2' }}</strong> agora e confirme o horário</div>
+              </div>
+              <span class="material-icons" style="font-size:1.1rem" [style.color]="form.payment_option === '50' ? 'var(--primary)' : 'var(--border)'">
+                {{ form.payment_option === '50' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+              </span>
+            </div>
+            <!-- 100% -->
+            <div (click)="form.payment_option = '100'" class="card p-4 cursor-pointer flex items-center gap-3"
+                 [style]="form.payment_option === '100' ? 'border-color:var(--primary);border-width:2px' : 'border-width:1.5px'">
+              <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm"
+                   [style]="form.payment_option === '100' ? 'background:var(--primary);color:white' : 'background:var(--muted);color:var(--muted-foreground)'">100%</div>
+              <div class="flex-1">
+                <div class="font-semibold text-sm" style="color:var(--foreground)">Garantir totalmente</div>
+                <div class="text-xs" style="color:var(--muted-foreground)">Pague <strong style="color:var(--primary)">R\${{ form.total_amount | number:'1.2-2' }}</strong> e reserve o horário para você</div>
+              </div>
+              <span class="material-icons" style="font-size:1.1rem" [style.color]="form.payment_option === '100' ? 'var(--primary)' : 'var(--border)'">
+                {{ form.payment_option === '100' ? 'radio_button_checked' : 'radio_button_unchecked' }}
+              </span>
             </div>
           </div>
 
@@ -573,16 +630,20 @@ import { Arena, Booking, Court } from '../../models/models';
                 <span style="color:var(--muted-foreground)">Horário</span>
                 <span class="font-medium" style="color:var(--foreground)">{{ form.start_hour }} – {{ form.end_hour }}</span>
               </div>
-              <div class="flex justify-between pt-2 font-heading font-bold text-base" style="border-top:1px solid var(--border)">
-                <span style="color:var(--foreground)">Total</span>
-                <span style="color:var(--primary)">R\${{ form.total_amount }}</span>
+              <div class="flex justify-between pt-2" style="border-top:1px solid var(--border)">
+                <span style="color:var(--muted-foreground)">Total da reserva</span>
+                <span class="font-medium" style="color:var(--foreground)">R\${{ form.total_amount }}</span>
+              </div>
+              <div class="flex justify-between font-heading font-bold text-base">
+                <span style="color:var(--foreground)">A pagar agora</span>
+                <span style="color:var(--primary)">R\${{ paidAmount | number:'1.2-2' }}</span>
               </div>
             </div>
           </div>
 
           <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim()">
             <span class="material-icons" style="font-size:1rem">pix</span>
-            Confirmar e Pagar via PIX
+            {{ form.payment_option === '50' ? 'Pagar entrada via PIX' : 'Pagar total via PIX' }}
           </button>
         </div>
 
@@ -593,7 +654,9 @@ import { Arena, Booking, Court } from '../../models/models';
             <span class="material-icons" style="font-size:2rem;color:var(--primary)">check_circle</span>
           </div>
           <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Reserva confirmada!</h2>
-          <p class="text-sm mb-6" style="color:var(--muted-foreground)">Conclua o pagamento via PIX para garantir seu horário</p>
+          <p class="text-sm mb-6" style="color:var(--muted-foreground)">
+            {{ confirmedBooking?.payment_option === '100' ? 'Pague o valor total via PIX para garantir seu horário' : 'Pague a entrada via PIX para confirmar seu horário' }}
+          </p>
 
           <div class="card p-5 mb-4 text-left">
             <div class="w-44 h-44 rounded-2xl mx-auto mb-5 flex items-center justify-center"
@@ -610,12 +673,24 @@ import { Arena, Booking, Court } from '../../models/models';
                 <span class="font-medium" style="color:var(--foreground)">{{ arena.name }}</span>
               </div>
               <div class="flex justify-between">
-                <span style="color:var(--muted-foreground)">Valor</span>
-                <span class="font-heading font-bold" style="color:var(--primary)">R\${{ confirmedBooking?.total_amount }}</span>
+                <span style="color:var(--muted-foreground)">Total da reserva</span>
+                <span class="font-medium" style="color:var(--foreground)">R\${{ confirmedBooking?.total_amount | number:'1.2-2' }}</span>
               </div>
-              <div class="flex justify-between">
+              <div class="flex justify-between font-heading font-bold text-base pt-1" style="border-top:1px solid var(--border)">
+                <span style="color:var(--foreground)">
+                  {{ confirmedBooking?.payment_option === '50' ? 'Entrada (50%)' : 'Valor a pagar' }}
+                </span>
+                <span style="color:var(--primary)">R\${{ confirmedBooking?.paid_amount | number:'1.2-2' }}</span>
+              </div>
+              <div *ngIf="confirmedBooking?.payment_option === '50'" class="flex justify-between text-xs pt-0.5">
+                <span style="color:var(--muted-foreground)">Saldo restante no dia</span>
+                <span style="color:var(--muted-foreground)">R\${{ (confirmedBooking?.total_amount || 0) - (confirmedBooking?.paid_amount || 0) | number:'1.2-2' }}</span>
+              </div>
+              <div class="flex justify-between pt-1">
                 <span style="color:var(--muted-foreground)">Status</span>
-                <span class="badge badge-accent">aguardando pagamento</span>
+                <span class="badge badge-accent">
+                  {{ confirmedBooking?.payment_option === '100' ? 'aguardando pagamento total' : 'aguardando entrada' }}
+                </span>
               </div>
             </div>
           </div>
@@ -648,26 +723,55 @@ export class ArenaDetailComponent implements OnInit {
   confirmedBooking: Booking | null = null;
 
   form = this.emptyForm();
+  private lastDate = this.form.date;
 
   hours    = Array.from({ length: 17 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
-  get endHours()        { return this.hours.slice(1); }
+  get endHours()        { return this.hours.filter(h => parseInt(h) > parseInt(this.form.start_hour)); }
   get todayStr()        { return new Date().toISOString().split('T')[0]; }
   get availableCourts() { return this.courts.filter(c => c.status !== 'bloqueada'); }
   get perPlayerAmount() { return this.form.num_players > 1 ? this.form.total_amount / this.form.num_players : this.form.total_amount; }
 
-  constructor(private data: DataService, private toast: ToastService) {}
+  get availableStartHours() {
+    if (this.form.date !== this.todayStr) return this.hours;
+    const now = new Date();
+    const currentHour = now.getHours();
+    return this.hours.filter(h => parseInt(h) > currentHour);
+  }
+
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService) {}
 
   ngOnInit() {
     this.courts = this.data.getCourtsForArena(this.arena.id);
   }
 
   emptyForm() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const firstAvailable = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].find(h => h > currentHour);
+    const defaultStart = firstAvailable != null
+      ? `${firstAvailable.toString().padStart(2, '0')}:00`
+      : '07:00';
     return {
-      court_id: '', date: new Date().toISOString().split('T')[0],
-      start_hour: '09:00', end_hour: '10:00',
+      court_id: '', date: now.toISOString().split('T')[0],
+      start_hour: defaultStart, end_hour: '',
       client_name: '', client_phone: '',
-      num_players: 2, split_payment: false, total_amount: 0
+      num_players: 2, split_payment: false, total_amount: 0,
+      payment_option: '50' as '50' | '100'
     };
+  }
+
+  goToStep3() {
+    const user = this.auth.user();
+    if (!this.form.client_name.trim() && user?.displayName) {
+      this.form.client_name = user.displayName;
+    }
+    this.step = 3;
+  }
+
+  get paidAmount() {
+    return this.form.payment_option === '50'
+      ? this.form.total_amount / 2
+      : this.form.total_amount;
   }
 
   selectCourt(court: Court) {
@@ -678,13 +782,37 @@ export class ArenaDetailComponent implements OnInit {
   }
 
   onSlotChange() {
+    // Ao mudar a data, recalcula o start_hour conforme a regra da data
+    if (this.form.date !== this.lastDate) {
+      this.lastDate = this.form.date;
+      if (this.form.date === this.todayStr) {
+        const available = this.availableStartHours;
+        this.form.start_hour = available.length > 0 ? available[0] : this.hours[0];
+      } else {
+        this.form.start_hour = this.hours[0]; // data futura: começa em 07:00
+      }
+      this.form.end_hour = '';
+    }
+    // Se for hoje e o início selecionado já passou, corrige
+    const available = this.availableStartHours;
+    if (this.form.date === this.todayStr && available.length > 0 && !available.includes(this.form.start_hour)) {
+      this.form.start_hour = available[0];
+      this.form.end_hour = '';
+    }
+    // Quando o início muda, reseta o fim se não for mais válido
+    if (this.form.end_hour && parseInt(this.form.end_hour) <= parseInt(this.form.start_hour)) {
+      this.form.end_hour = '';
+    }
     this.calcTotal();
-    if (this.form.court_id) {
+    if (this.form.court_id && this.form.end_hour) {
       this.slotConflict = this.data.isSlotOccupied(this.arena.id, this.form.court_id, this.form.date, this.form.start_hour, this.form.end_hour);
+    } else {
+      this.slotConflict = false;
     }
   }
 
   calcTotal() {
+    if (!this.form.end_hour) { this.durationHours = 0; this.form.total_amount = 0; return; }
     const s = parseInt(this.form.start_hour), e = parseInt(this.form.end_hour);
     this.durationHours = e > s ? e - s : 0;
     this.form.total_amount = this.durationHours * (this.selectedCourt?.hourly_rate || 0);
@@ -692,21 +820,30 @@ export class ArenaDetailComponent implements OnInit {
 
   confirm() {
     if (!this.form.client_name.trim()) return;
+    const paid = this.paidAmount;
+    const status = this.form.payment_option === '100' ? 'pago' : 'parcial';
     const booking = this.data.addBooking({
-      arena_id:       this.arena.id,
-      client_name:    this.form.client_name,
-      client_phone:   this.form.client_phone,
-      court_id:       this.form.court_id,
-      date:           this.form.date,
-      start_hour:     this.form.start_hour,
-      end_hour:       this.form.end_hour,
-      payment_status: 'pendente',
-      total_amount:   this.form.total_amount,
-      duration_hours: this.durationHours,
+      arena_id:        this.arena.id,
+      client_name:     this.form.client_name,
+      client_phone:    this.form.client_phone,
+      court_id:        this.form.court_id,
+      date:            this.form.date,
+      start_hour:      this.form.start_hour,
+      end_hour:        this.form.end_hour,
+      payment_status:  status,
+      total_amount:    this.form.total_amount,
+      paid_amount:     paid,
+      payment_option:  this.form.payment_option,
+      duration_hours:  this.durationHours,
+      split_payment:   this.form.split_payment,
+      num_players:     this.form.split_payment ? this.form.num_players : undefined,
     });
     this.confirmedBooking = booking;
     this.step = 4;
-    this.toast.show('Reserva criada! Aguardando pagamento.');
+    const msg = this.form.payment_option === '100'
+      ? 'Reserva garantida! Conclua o pagamento via PIX.'
+      : 'Reserva criada! Pague a entrada via PIX para confirmar.';
+    this.toast.show(msg);
   }
 
   resetToArena() {
