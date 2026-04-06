@@ -311,6 +311,45 @@ import { Arena, Booking, Court } from '../../models/models';
       color: white;
     }
 
+    /* ── Reviews carousel ── */
+    .reviews-carousel {
+      display: flex;
+      gap: 0.75rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0.25rem 0 0.5rem;
+    }
+    .reviews-carousel::-webkit-scrollbar { display: none; }
+    .review-card {
+      min-width: 210px;
+      max-width: 210px;
+      flex-shrink: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.875rem;
+      padding: 0.875rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .review-comment {
+      font-size: 0.75rem;
+      color: var(--foreground);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+    }
+    .review-meta {
+      font-size: 0.68rem;
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
     /* ── Step indicator ── */
     .step-bar {
       display: flex;
@@ -392,6 +431,54 @@ import { Arena, Booking, Court } from '../../models/models';
         <p class="text-sm py-4" style="color:var(--muted-foreground);border-bottom:1px solid var(--border)">
           {{ arena.description }}
         </p>
+
+        <!-- ═══════ AVALIAÇÕES (carrossel — só step 1) ═══════ -->
+        <div *ngIf="step === 1 && arenaReviews.length > 0"
+             class="py-4" style="border-bottom:1px solid var(--border)">
+
+          <!-- Header da seção -->
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-heading font-semibold text-sm" style="color:var(--foreground)">
+              Avaliações dos clientes
+            </h3>
+            <div class="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                 style="background:hsl(38,92%,50%,0.1)">
+              <span class="material-icons" style="font-size:0.8rem;color:hsl(38,92%,50%)">star</span>
+              <span class="text-xs font-bold" style="color:hsl(38,92%,35%)">{{ arenaAvgRating }}</span>
+              <span class="text-xs" style="color:hsl(38,92%,45%)">({{ arenaReviews.length }})</span>
+            </div>
+          </div>
+
+          <!-- Carrossel -->
+          <div class="reviews-carousel">
+            <div *ngFor="let r of arenaReviews" class="review-card">
+
+              <!-- Estrelas -->
+              <div class="flex gap-0.5">
+                <span *ngFor="let s of [1,2,3,4,5]"
+                      class="material-icons"
+                      style="font-size:0.9rem"
+                      [style.color]="s <= r.stars ? 'hsl(38,92%,50%)' : 'var(--border)'">star</span>
+              </div>
+
+              <!-- Comentário -->
+              <p *ngIf="r.comment" class="review-comment">"{{ r.comment }}"</p>
+              <p *ngIf="!r.comment" class="review-comment" style="color:var(--muted-foreground);font-style:italic">
+                Sem comentário
+              </p>
+
+              <!-- Meta -->
+              <div class="review-meta">
+                <span class="flex items-center gap-0.5">
+                  <span class="material-icons" style="font-size:0.7rem">verified_user</span>
+                  Cliente verificado
+                </span>
+                <span>{{ r.date | date:'dd/MM/yy' }}</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
 
         <!-- Step indicator (steps 1–3) -->
         <div *ngIf="step < 4" class="flex items-center gap-3 pt-4 pb-1">
@@ -856,6 +943,9 @@ export class ArenaDetailComponent implements OnInit {
   splitCollectedAmount = 0;
   splitPaidCount = 0;
 
+  // Reviews
+  arenaReviews: any[] = [];
+
   form = this.emptyForm();
   private lastDate = this.form.date;
 
@@ -878,8 +968,18 @@ export class ArenaDetailComponent implements OnInit {
 
   constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService) {}
 
+  get arenaAvgRating(): number {
+    if (!this.arenaReviews.length) return 0;
+    const avg = this.arenaReviews.reduce((s: number, r: any) => s + r.stars, 0) / this.arenaReviews.length;
+    return Math.round(avg * 10) / 10;
+  }
+
   ngOnInit() {
     this.courts = this.data.getCourtsForArena(this.arena.id);
+    const all: any[] = JSON.parse(localStorage.getItem('arenaflow_reviews') || '[]');
+    this.arenaReviews = all
+      .filter((r: any) => r.arena_id === this.arena.id)
+      .sort((a: any, b: any) => b.date.localeCompare(a.date));
   }
 
   emptyForm() {
