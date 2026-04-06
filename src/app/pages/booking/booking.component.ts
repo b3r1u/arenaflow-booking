@@ -58,6 +58,78 @@ import { Booking, Arena, Court } from '../../models/models';
       background: var(--muted);
       color: var(--muted-foreground);
     }
+    .btn-cancel {
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.6rem 0;
+      border-radius: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: var(--font-heading, inherit);
+      border: 1.5px solid hsl(0,72%,51%,0.35);
+      background: transparent;
+      color: hsl(0,72%,51%);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .btn-cancel:hover {
+      background: hsl(0,72%,51%,0.06);
+      border-color: hsl(0,72%,51%,0.6);
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: fadeIn 0.15s ease;
+    }
+    .modal-sheet {
+      background: var(--card);
+      border-radius: 1.25rem;
+      padding: 1.75rem 1.5rem;
+      width: 100%;
+      max-width: 420px;
+      animation: scaleIn 0.18s ease;
+    }
+    @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes scaleIn { from { transform: scale(0.94); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+    .btn-confirm-cancel {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      font-family: var(--font-heading, inherit);
+      border: none;
+      background: hsl(0,72%,51%);
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-confirm-cancel:hover { opacity: 0.88; }
+    .btn-back {
+      width: 100%;
+      padding: 0.65rem;
+      border-radius: 0.75rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      font-family: var(--font-heading, inherit);
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-back:hover { background: var(--muted); }
   `],
   template: `
     <div class="max-w-lg mx-auto px-4 pb-24 pt-4">
@@ -168,9 +240,71 @@ import { Booking, Arena, Court } from '../../models/models';
                 <span class="material-icons" style="font-size:0.9rem">pix</span>
                 Pagar agora via PIX
               </button>
+
+              <!-- Cancelar — disponível para pago e parcial -->
+              <button *ngIf="b.payment_status === 'parcial' || b.payment_status === 'pago'"
+                      class="btn-cancel"
+                      (click)="openCancelModal(b)">
+                <span class="material-icons" style="font-size:0.9rem">cancel</span>
+                Cancelar reserva
+              </button>
             </div>
 
           </div>
+        </div>
+      </div>
+
+      <!-- Modal de confirmação de cancelamento -->
+      <div class="modal-overlay" *ngIf="cancellingBooking" (click)="closeCancelModal()">
+        <div class="modal-sheet" (click)="$event.stopPropagation()">
+
+          <!-- Ícone -->
+          <div class="flex justify-center mb-4">
+            <div class="w-14 h-14 rounded-full flex items-center justify-center"
+                 style="background:hsl(0,72%,51%,0.1)">
+              <span class="material-icons" style="font-size:1.6rem;color:hsl(0,72%,51%)">cancel</span>
+            </div>
+          </div>
+
+          <!-- Título -->
+          <h3 class="font-heading font-bold text-lg text-center mb-1" style="color:var(--foreground)">
+            Cancelar reserva?
+          </h3>
+          <p class="text-sm text-center mb-4" style="color:var(--muted-foreground)">
+            Você está cancelando a reserva em
+            <strong style="color:var(--foreground)">{{ getArenaName(cancellingBooking.arena_id) }}</strong>
+            no dia <strong style="color:var(--foreground)">{{ cancellingBooking.date | date:'dd/MM/yyyy':'UTC' }}</strong>
+            às <strong style="color:var(--foreground)">{{ cancellingBooking.start_hour }}</strong>.
+          </p>
+
+          <!-- Sem taxa -->
+          <div *ngIf="cancellationIsFree"
+               class="rounded-xl p-3 mb-5 flex gap-2 items-start"
+               style="background:hsl(152,69%,40%,0.08);border:1px solid hsl(152,69%,40%,0.2)">
+            <span class="material-icons flex-shrink-0" style="font-size:1rem;color:var(--primary);margin-top:1px">check_circle</span>
+            <p class="text-xs leading-relaxed" style="color:var(--primary)">
+              Cancelamento <strong>sem taxa</strong> — você está dentro do prazo gratuito. O valor pago será reembolsado integralmente.
+            </p>
+          </div>
+
+          <!-- Com taxa -->
+          <div *ngIf="!cancellationIsFree"
+               class="rounded-xl p-3 mb-5 flex gap-2 items-start"
+               style="background:hsl(0,84%,60%,0.08);border:1px solid hsl(0,84%,60%,0.25)">
+            <span class="material-icons flex-shrink-0" style="font-size:1rem;color:hsl(0,72%,51%);margin-top:1px">warning</span>
+            <p class="text-xs leading-relaxed" style="color:hsl(0,72%,40%)">
+              Fora do prazo de cancelamento gratuito. Será cobrada uma <strong>taxa de {{ cancellationFeePercent }}%</strong>
+              (R\${{ cancellationFeeAmount | number:'1.2-2' }}) sobre o valor já pago.
+              O restante (R\${{ (cancellingBooking.paid_amount - cancellationFeeAmount) | number:'1.2-2' }}) será reembolsado.
+            </p>
+          </div>
+
+          <button class="btn-confirm-cancel" (click)="confirmCancel()">
+            Sim, cancelar reserva
+          </button>
+          <button class="btn-back" (click)="closeCancelModal()">
+            Voltar
+          </button>
         </div>
       </div>
 
@@ -199,7 +333,8 @@ import { Booking, Arena, Court } from '../../models/models';
                   {{ getCourtName(b.arena_id, b.court_id) }}
                 </div>
               </div>
-              <span class="badge badge-primary">concluída</span>
+              <span *ngIf="b.payment_status !== 'cancelado'" class="badge badge-primary">concluída</span>
+              <span *ngIf="b.payment_status === 'cancelado'" class="badge badge-destructive">cancelada</span>
             </div>
 
             <div class="px-4 py-3">
@@ -232,6 +367,10 @@ import { Booking, Arena, Court } from '../../models/models';
 })
 export class MyBookingsComponent implements OnInit {
   activeTab: 'andamento' | 'realizadas' = 'andamento';
+  cancellingBooking: Booking | null = null;
+  cancellationIsFree = true;
+  cancellationFeePercent = 0;
+  cancellationFeeAmount = 0;
   private bookings: Booking[] = [];
   private arenas: Arena[] = [];
   private courts: Court[] = [];
@@ -313,13 +452,13 @@ export class MyBookingsComponent implements OnInit {
 
   get emAndamento(): Booking[] {
     return this.userBookings
-      .filter(b => b.date >= this.todayStr)
+      .filter(b => b.date >= this.todayStr && b.payment_status !== 'cancelado')
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
   get jaRealizadas(): Booking[] {
     return this.userBookings
-      .filter(b => b.date < this.todayStr)
+      .filter(b => b.date < this.todayStr || b.payment_status === 'cancelado')
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
@@ -329,5 +468,37 @@ export class MyBookingsComponent implements OnInit {
 
   getCourtName(arenaId: string, courtId: string): string {
     return this.courts.find(c => c.arena_id === arenaId && c.id === courtId)?.name || 'Quadra';
+  }
+
+  openCancelModal(b: Booking): void {
+    this.cancellingBooking = b;
+
+    // Lê a política salva pelo admin (ou usa padrão)
+    const stored = localStorage.getItem('arenaflow_cancel_policy');
+    const policy: { limit_hours: number; fee_percent: number } =
+      stored ? JSON.parse(stored) : { limit_hours: 1, fee_percent: 0 };
+
+    const bookingDate = new Date(`${b.date}T${b.start_hour}:00`);
+    const hoursUntil = (bookingDate.getTime() - Date.now()) / 3_600_000;
+
+    if (policy.limit_hours === 0 || hoursUntil > policy.limit_hours) {
+      this.cancellationIsFree    = true;
+      this.cancellationFeePercent = 0;
+      this.cancellationFeeAmount  = 0;
+    } else {
+      this.cancellationIsFree    = false;
+      this.cancellationFeePercent = policy.fee_percent;
+      this.cancellationFeeAmount  = (b.paid_amount * policy.fee_percent) / 100;
+    }
+  }
+
+  closeCancelModal(): void {
+    this.cancellingBooking = null;
+  }
+
+  confirmCancel(): void {
+    if (!this.cancellingBooking) return;
+    this.data.cancelBooking(this.cancellingBooking.id);
+    this.cancellingBooking = null;
   }
 }
