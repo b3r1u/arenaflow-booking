@@ -3,18 +3,19 @@ import { CommonModule } from '@angular/common';
 import { SearchComponent } from './pages/search/search.component';
 import { ArenaDetailComponent } from './pages/arena-detail/arena-detail.component';
 import { MyBookingsComponent } from './pages/booking/booking.component';
+import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { LoginComponent } from './pages/login/login.component';
 import { ToastService } from './services/toast.service';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 import { Arena } from './models/models';
 
-type View = 'search' | 'arena' | 'my-bookings';
+type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, LoginComponent],
+  imports: [CommonModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, UserProfileComponent, LoginComponent],
   template: `
     <div style="background-color:var(--background);min-height:100vh">
 
@@ -101,10 +102,11 @@ type View = 'search' | 'arena' | 'my-bookings';
         <div *ngIf="menuOpen" class="fixed inset-0 z-20" (click)="menuOpen = false"></div>
 
         <!-- Views -->
-        <app-search       *ngIf="view === 'search'"     (select)="openArena($event)"></app-search>
-        <app-arena-detail *ngIf="view === 'arena' && selectedArena"
-                          [arena]="selectedArena" (back)="goSearch()"></app-arena-detail>
-        <app-my-bookings  *ngIf="view === 'my-bookings'"></app-my-bookings>
+        <app-search        *ngIf="view === 'search'"                (select)="openArena($event)"></app-search>
+        <app-arena-detail  *ngIf="view === 'arena' && selectedArena"
+                           [arena]="selectedArena" (back)="goSearch()"></app-arena-detail>
+        <app-my-bookings   *ngIf="view === 'my-bookings'"></app-my-bookings>
+        <app-user-profile  *ngIf="view === 'profile'"></app-user-profile>
 
         <!-- Bottom nav -->
         <nav class="fixed bottom-0 left-0 right-0 h-16 flex z-30"
@@ -119,7 +121,13 @@ type View = 'search' | 'arena' | 'my-bookings';
                   [style.color]="view === 'my-bookings' ? 'var(--primary)' : 'var(--muted-foreground)'"
                   (click)="view = 'my-bookings'">
             <span class="material-icons" style="font-size:1.3rem">event_note</span>
-            <span style="font-size:0.6rem;font-weight:600">Minhas reservas</span>
+            <span style="font-size:0.6rem;font-weight:600">Reservas</span>
+          </button>
+          <button class="flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors"
+                  [style.color]="view === 'profile' ? 'var(--primary)' : 'var(--muted-foreground)'"
+                  (click)="view = 'profile'">
+            <span class="material-icons" style="font-size:1.3rem">person</span>
+            <span style="font-size:0.6rem;font-weight:600">Perfil</span>
           </button>
         </nav>
 

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
 
 @Component({
@@ -875,7 +876,7 @@ export class ArenaDetailComponent implements OnInit {
     return this.hours.filter(h => parseInt(h) > currentHour);
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService) {}
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService) {}
 
   ngOnInit() {
     this.courts = this.data.getCourtsForArena(this.arena.id);
@@ -898,10 +899,12 @@ export class ArenaDetailComponent implements OnInit {
   }
 
   goToStep3() {
-    const user = this.auth.user();
-    if (!this.form.client_name.trim() && user?.displayName) {
-      this.form.client_name = user.displayName;
-    }
+    const profile = this.userProfile.getProfile();
+    const user    = this.auth.user();
+    if (!this.form.client_name.trim())
+      this.form.client_name = profile.name || user?.displayName || '';
+    if (!this.form.client_phone.trim())
+      this.form.client_phone = profile.phone || '';
     this.step = 3;
   }
 
