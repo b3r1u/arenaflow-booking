@@ -16,6 +16,7 @@ export interface Arena {
   reviews_count: number;
   price_from: number;
   price_to: number;
+  courts?: Court[];
 }
 
 export interface Court {
@@ -31,10 +32,12 @@ export interface Court {
 export interface Booking {
   id: string;
   arena_id: string;
+  arena_name?: string;
+  court_id: string;
+  court_name?: string;
   user_uid: string;
   client_name: string;
   client_phone?: string;
-  court_id: string;
   date: string;
   start_hour: string;
   end_hour: string;

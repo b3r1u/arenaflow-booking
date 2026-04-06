@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
-import { Booking, Arena, Court } from '../../models/models';
+import { Booking } from '../../models/models';
 
 @Component({
   selector: 'app-my-bookings',
@@ -219,10 +219,10 @@ import { Booking, Arena, Court } from '../../models/models';
                  style="background: linear-gradient(135deg, hsl(152,69%,40%,0.1), hsl(152,69%,40%,0.04)); border-bottom:1px solid var(--border)">
               <div>
                 <div class="font-heading font-bold text-sm" style="color:var(--foreground)">
-                  {{ getArenaName(b.arena_id) }}
+                  {{ getArenaName(b) }}
                 </div>
                 <div class="text-xs mt-0.5" style="color:var(--muted-foreground)">
-                  <span class="sport-dot"></span>{{ getCourtName(b.arena_id, b.court_id) }}
+                  <span class="sport-dot"></span>{{ getCourtName(b) }}
                 </div>
               </div>
               <span class="badge"
@@ -309,7 +309,7 @@ import { Booking, Arena, Court } from '../../models/models';
           </h3>
           <p class="text-sm text-center mb-4" style="color:var(--muted-foreground)">
             Você está cancelando a reserva em
-            <strong style="color:var(--foreground)">{{ getArenaName(cancellingBooking.arena_id) }}</strong>
+            <strong style="color:var(--foreground)">{{ getArenaName(cancellingBooking) }}</strong>
             no dia <strong style="color:var(--foreground)">{{ cancellingBooking.date | date:'dd/MM/yyyy':'UTC' }}</strong>
             às <strong style="color:var(--foreground)">{{ cancellingBooking.start_hour }}</strong>.
           </p>
@@ -363,11 +363,11 @@ import { Booking, Arena, Court } from '../../models/models';
                  style="border-bottom:1px solid var(--border)">
               <div>
                 <div class="font-heading font-bold text-sm" style="color:var(--foreground)">
-                  {{ getArenaName(b.arena_id) }}
+                  {{ getArenaName(b) }}
                 </div>
                 <div class="text-xs mt-0.5" style="color:var(--muted-foreground)">
                   <span class="sport-dot" style="background:var(--muted-foreground)"></span>
-                  {{ getCourtName(b.arena_id, b.court_id) }}
+                  {{ getCourtName(b) }}
                 </div>
               </div>
               <span *ngIf="b.payment_status !== 'cancelado'" class="badge badge-primary">concluída</span>
@@ -421,7 +421,7 @@ import { Booking, Arena, Court } from '../../models/models';
               <span class="material-icons" style="font-size:1.8rem;color:hsl(38,92%,50%)">star</span>
             </div>
             <h3 class="font-heading font-bold text-lg" style="color:var(--foreground)">
-              {{ getArenaName(reviewingBooking.arena_id) }}
+              {{ getArenaName(reviewingBooking) }}
             </h3>
             <p class="text-xs mt-0.5" style="color:var(--muted-foreground)">
               {{ reviewingBooking.date | date:'dd/MM/yyyy':'UTC' }} · {{ reviewingBooking.start_hour }}–{{ reviewingBooking.end_hour }}
@@ -476,8 +476,6 @@ export class MyBookingsComponent implements OnInit {
   cancellationFeePercent = 0;
   cancellationFeeAmount = 0;
   private bookings: Booking[] = [];
-  private arenas: Arena[] = [];
-  private courts: Court[] = [];
 
   // Review state
   reviewingBooking: Booking | null = null;
@@ -496,61 +494,7 @@ export class MyBookingsComponent implements OnInit {
   constructor(private data: DataService, public auth: AuthService, private toast: ToastService) {}
 
   ngOnInit() {
-    this.arenas = this.data.getArenas();
-    this.courts = this.data.getCourts();
     this.data.bookings$.subscribe(b => this.bookings = b);
-    this.injectMocks();
-  }
-
-  private injectMocks() {
-    const uid = this.auth.user()?.uid;
-    if (!uid) return;
-    const already = this.data.getBookings().some(b => b.id === 'mock-andamento');
-    if (already) return;
-
-    // Em andamento — daqui a 2 dias, entrada paga (50%)
-    this.data.addBooking({
-      id_hint: 'mock-andamento',
-      user_uid:       uid,
-      arena_id:       '3',
-      client_name:    this.auth.user()?.displayName || 'Usuário',
-      client_phone:   '',
-      court_id:       'c1a3',
-      date:           this.offsetDate(2),
-      start_hour:     '19:00',
-      end_hour:       '21:00',
-      payment_status: 'parcial',
-      total_amount:   160,
-      paid_amount:    80,
-      payment_option: '50',
-      duration_hours: 2,
-      split_payment:  false,
-    } as any);
-
-    // Já realizada — 8 dias atrás, pago total (100%)
-    this.data.addBooking({
-      id_hint: 'mock-realizada',
-      user_uid:       uid,
-      arena_id:       '1',
-      client_name:    this.auth.user()?.displayName || 'Usuário',
-      client_phone:   '',
-      court_id:       'c1a1',
-      date:           this.offsetDate(-8),
-      start_hour:     '10:00',
-      end_hour:       '12:00',
-      payment_status: 'pago',
-      total_amount:   120,
-      paid_amount:    120,
-      payment_option: '100',
-      duration_hours: 2,
-      split_payment:  false,
-    } as any);
-  }
-
-  private offsetDate(days: number): string {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d.toISOString().split('T')[0];
   }
 
   get initials(): string {
@@ -580,12 +524,12 @@ export class MyBookingsComponent implements OnInit {
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  getArenaName(id: string): string {
-    return this.arenas.find(a => a.id === id)?.name || 'Arena';
+  getArenaName(b: Booking): string {
+    return b.arena_name || 'Arena';
   }
 
-  getCourtName(arenaId: string, courtId: string): string {
-    return this.courts.find(c => c.arena_id === arenaId && c.id === courtId)?.name || 'Quadra';
+  getCourtName(b: Booking): string {
+    return b.court_name || 'Quadra';
   }
 
   isReviewed(bookingId: string): boolean {
@@ -620,11 +564,6 @@ export class MyBookingsComponent implements OnInit {
     // Marca reserva como avaliada
     this.reviewedIds.add(this.reviewingBooking.id);
     localStorage.setItem('arenaflow_reviewed_bookings', JSON.stringify([...this.reviewedIds]));
-
-    // Atualiza rating da arena com média de todas as avaliações dela
-    const arenaReviews = reviews.filter((r: any) => r.arena_id === this.reviewingBooking!.arena_id);
-    const avg = arenaReviews.reduce((s: number, r: any) => s + r.stars, 0) / arenaReviews.length;
-    this.data.updateArenaRating(this.reviewingBooking.arena_id, Math.round(avg * 10) / 10, arenaReviews.length);
 
     this.toast.show('Obrigado pela avaliação! ⭐');
     this.closeReviewModal();

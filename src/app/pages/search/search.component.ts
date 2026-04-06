@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DataService } from '../../services/data.service';
+import { ArenaService } from '../../services/arena.service';
 import { Arena, SportType } from '../../models/models';
 
 @Component({
@@ -205,15 +205,29 @@ import { Arena, SportType } from '../../models/models';
         </button>
       </div>
 
+      <!-- Loading -->
+      <div *ngIf="arenaService.loading()" class="text-center py-16">
+        <span class="material-icons mb-3 block" style="font-size:3rem;color:var(--border);animation:spin 1s linear infinite">refresh</span>
+        <p class="text-sm" style="color:var(--muted-foreground)">Buscando arenas...</p>
+      </div>
+
+      <!-- Erro -->
+      <div *ngIf="arenaService.error() && !arenaService.loading()" class="text-center py-16">
+        <span class="material-icons mb-3 block" style="font-size:3rem;color:var(--border)">wifi_off</span>
+        <p class="font-heading font-bold mb-1" style="color:var(--foreground)">Erro ao carregar arenas</p>
+        <p class="text-sm mb-3" style="color:var(--muted-foreground)">{{ arenaService.error() }}</p>
+        <button class="btn-primary" (click)="load()">Tentar novamente</button>
+      </div>
+
       <!-- Contagem -->
-      <div class="flex items-center justify-between mb-3">
+      <div *ngIf="!arenaService.loading() && !arenaService.error()" class="flex items-center justify-between mb-3">
         <p class="text-xs font-medium" style="color:var(--muted-foreground)">
           {{ filtered.length }} arena{{ filtered.length !== 1 ? 's' : '' }} encontrada{{ filtered.length !== 1 ? 's' : '' }}
         </p>
       </div>
 
       <!-- Grid de arenas -->
-      <div class="arena-grid" *ngIf="filtered.length > 0">
+      <div class="arena-grid" *ngIf="!arenaService.loading() && filtered.length > 0">
         <div *ngFor="let arena of filtered"
              class="arena-card"
              (click)="select.emit(arena)">
@@ -254,7 +268,7 @@ import { Arena, SportType } from '../../models/models';
             <div class="card-footer">
               <div class="card-meta">
                 <span class="card-price">R\${{ arena.price_from }}{{ arena.price_from !== arena.price_to ? '–' + arena.price_to : '' }}<span>/h</span></span>
-                <span class="card-courts">{{ getCourtsCount(arena.id) }} quadra{{ getCourtsCount(arena.id) !== 1 ? 's' : '' }} disponíveis</span>
+                <span class="card-courts">{{ getCourtsCount(arena) }} quadra{{ getCourtsCount(arena) !== 1 ? 's' : '' }} disponíveis</span>
               </div>
               <div class="card-cta">
                 Ver quadras
@@ -267,7 +281,7 @@ import { Arena, SportType } from '../../models/models';
       </div>
 
       <!-- Empty state -->
-      <div *ngIf="filtered.length === 0" class="text-center py-16">
+      <div *ngIf="!arenaService.loading() && !arenaService.error() && filtered.length === 0" class="text-center py-16">
         <span class="material-icons mb-3 block" style="font-size:3rem;color:var(--border)">search_off</span>
         <p class="font-heading font-bold mb-1" style="color:var(--foreground)">Nenhuma arena encontrada</p>
         <p class="text-sm" style="color:var(--muted-foreground)">Tente outro nome ou remova os filtros</p>
@@ -280,7 +294,6 @@ import { Arena, SportType } from '../../models/models';
 export class SearchComponent implements OnInit {
   @Output() select = new EventEmitter<Arena>();
 
-  arenas: Arena[] = [];
   search = '';
   sportFilter = '';
 
@@ -290,22 +303,26 @@ export class SearchComponent implements OnInit {
     { value: 'beach tennis', label: 'Beach Tennis', icon: 'sports_tennis'     },
   ];
 
-  constructor(private data: DataService) {}
+  constructor(public arenaService: ArenaService) {}
 
   ngOnInit() {
-    this.data.arenas$.subscribe(a => this.arenas = a);
+    this.load();
+  }
+
+  load() {
+    this.arenaService.loadArenas().subscribe();
   }
 
   get filtered(): Arena[] {
-    return this.arenas.filter(a => {
+    return this.arenaService.arenas().filter(a => {
       const matchSearch = !this.search || a.name.toLowerCase().includes(this.search.toLowerCase());
       const matchSport  = !this.sportFilter || a.sports.includes(this.sportFilter as SportType);
       return matchSearch && matchSport;
     });
   }
 
-  getCourtsCount(arenaId: string): number {
-    return this.data.getCourts().filter(c => c.arena_id === arenaId && c.status !== 'bloqueada').length;
+  getCourtsCount(arena: Arena): number {
+    return arena.courts?.filter(c => c.status === 'disponível').length ?? 0;
   }
 
   clearFilters() {

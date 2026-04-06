@@ -975,7 +975,7 @@ export class ArenaDetailComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.courts = this.data.getCourtsForArena(this.arena.id);
+    this.courts = this.arena.courts ?? [];
     const all: any[] = JSON.parse(localStorage.getItem('arenaflow_reviews') || '[]');
     this.arenaReviews = all
       .filter((r: any) => r.arena_id === this.arena.id)
@@ -1064,10 +1064,12 @@ export class ArenaDetailComponent implements OnInit {
     const status = this.form.payment_option === '100' ? 'pago' : 'parcial';
     const booking = this.data.addBooking({
       arena_id:        this.arena.id,
+      arena_name:      this.arena.name,
+      court_id:        this.form.court_id,
+      court_name:      this.selectedCourt?.name,
       user_uid:        this.auth.user()?.uid || '',
       client_name:     this.form.client_name,
       client_phone:    this.form.client_phone,
-      court_id:        this.form.court_id,
       date:            this.form.date,
       start_hour:      this.form.start_hour,
       end_hour:        this.form.end_hour,
