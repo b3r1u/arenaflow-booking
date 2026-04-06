@@ -12,6 +12,7 @@ export interface Arena {
   open_hours: string;
   logo_color: string;
   logo_initials: string;
+  logo_url?: string | null;
   rating: number;
   reviews_count: number;
   price_from: number;

@@ -396,7 +396,13 @@ import { Arena, Booking, Court } from '../../models/models';
 
         <!-- Arena identity -->
         <div class="hero-content">
-          <div class="hero-avatar" [style.background]="arena.logo_color">{{ arena.logo_initials }}</div>
+          <div class="hero-avatar" [style.background]="arena.logo_color">
+            <img *ngIf="arena.logo_url"
+                 [src]="arena.logo_url"
+                 alt="Logo"
+                 style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+            <span *ngIf="!arena.logo_url">{{ arena.logo_initials }}</span>
+          </div>
           <div>
             <div class="hero-name">{{ arena.name }}</div>
             <div class="hero-loc">

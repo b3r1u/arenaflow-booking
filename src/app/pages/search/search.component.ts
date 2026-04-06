@@ -247,7 +247,11 @@ import { Arena, SportType } from '../../models/models';
             <!-- Avatar -->
             <div class="card-avatar-wrap">
               <div class="card-avatar" [style.background]="arena.logo_color">
-                {{ arena.logo_initials }}
+                <img *ngIf="arena.logo_url"
+                     [src]="arena.logo_url"
+                     alt="Logo"
+                     style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+                <span *ngIf="!arena.logo_url">{{ arena.logo_initials }}</span>
               </div>
             </div>
           </div>
