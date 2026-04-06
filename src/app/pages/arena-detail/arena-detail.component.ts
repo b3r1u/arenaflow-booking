@@ -642,69 +642,198 @@ import { Arena, Booking, Court } from '../../models/models';
           </div>
 
           <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim()">
-            <span class="material-icons" style="font-size:1rem">pix</span>
-            {{ form.payment_option === '50' ? 'Pagar entrada via PIX' : 'Pagar total via PIX' }}
+            <span class="material-icons" style="font-size:1rem">{{ form.split_payment ? 'group' : 'pix' }}</span>
+            {{ form.payment_option === '50' ? 'Pagar entrada via PIX' : (form.split_payment ? 'Criar cobrança' : 'Pagar total via PIX') }}
           </button>
         </div>
 
         <!-- ══ STEP 4: Confirmação + PIX ══ -->
-        <div *ngIf="step === 4" class="text-center pt-8">
-          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-               style="background:hsl(152,69%,40%,0.12)">
-            <span class="material-icons" style="font-size:2rem;color:var(--primary)">check_circle</span>
-          </div>
-          <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Reserva confirmada!</h2>
-          <p class="text-sm mb-6" style="color:var(--muted-foreground)">
-            {{ confirmedBooking?.payment_option === '100' ? 'Pague o valor total via PIX para garantir seu horário' : 'Pague a entrada via PIX para confirmar seu horário' }}
-          </p>
+        <div *ngIf="step === 4" class="pt-6">
 
-          <div class="card p-5 mb-4 text-left">
-            <div class="w-44 h-44 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-                 style="background:var(--muted)">
-              <span class="material-icons" style="font-size:4rem;color:var(--muted-foreground)">qr_code_2</span>
-            </div>
-            <div class="p-3.5 rounded-xl mb-4 text-center" style="background:var(--muted)">
-              <div class="text-xs mb-1" style="color:var(--muted-foreground)">Chave PIX</div>
-              <div class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ arena.phone }}</div>
-            </div>
-            <div class="space-y-1.5 text-sm">
-              <div class="flex justify-between">
-                <span style="color:var(--muted-foreground)">Arena</span>
-                <span class="font-medium" style="color:var(--foreground)">{{ arena.name }}</span>
+          <!-- ── Fluxo normal (sem split) ── -->
+          <ng-container *ngIf="!confirmedBooking?.split_payment">
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                   style="background:hsl(152,69%,40%,0.12)">
+                <span class="material-icons" style="font-size:2rem;color:var(--primary)">check_circle</span>
               </div>
-              <div class="flex justify-between">
+              <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Reserva confirmada!</h2>
+              <p class="text-sm" style="color:var(--muted-foreground)">
+                {{ confirmedBooking?.payment_option === '100' ? 'Pague o valor total via PIX para garantir seu horário' : 'Pague a entrada via PIX para confirmar seu horário' }}
+              </p>
+            </div>
+
+            <div class="card p-5 mb-4 text-left">
+              <div class="w-44 h-44 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+                   style="background:var(--muted)">
+                <span class="material-icons" style="font-size:4rem;color:var(--muted-foreground)">qr_code_2</span>
+              </div>
+              <div class="p-3.5 rounded-xl mb-4 text-center" style="background:var(--muted)">
+                <div class="text-xs mb-1" style="color:var(--muted-foreground)">Chave PIX</div>
+                <div class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ arena.phone }}</div>
+              </div>
+              <div class="space-y-1.5 text-sm">
+                <div class="flex justify-between">
+                  <span style="color:var(--muted-foreground)">Arena</span>
+                  <span class="font-medium" style="color:var(--foreground)">{{ arena.name }}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span style="color:var(--muted-foreground)">Total da reserva</span>
+                  <span class="font-medium" style="color:var(--foreground)">R\${{ confirmedBooking?.total_amount | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between font-heading font-bold text-base pt-1" style="border-top:1px solid var(--border)">
+                  <span style="color:var(--foreground)">
+                    {{ confirmedBooking?.payment_option === '50' ? 'Entrada (50%)' : 'Valor a pagar' }}
+                  </span>
+                  <span style="color:var(--primary)">R\${{ confirmedBooking?.paid_amount | number:'1.2-2' }}</span>
+                </div>
+                <div *ngIf="confirmedBooking?.payment_option === '50'" class="flex justify-between text-xs pt-0.5">
+                  <span style="color:var(--muted-foreground)">Saldo restante no dia</span>
+                  <span style="color:var(--muted-foreground)">R\${{ (confirmedBooking?.total_amount || 0) - (confirmedBooking?.paid_amount || 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="flex justify-between pt-1">
+                  <span style="color:var(--muted-foreground)">Status</span>
+                  <span class="badge badge-accent">
+                    {{ confirmedBooking?.payment_option === '100' ? 'aguardando pagamento total' : 'aguardando entrada' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-2">
+              <button class="btn-outline flex-1" (click)="resetToArena()">
+                <span class="material-icons" style="font-size:1rem">add</span>
+                Nova reserva aqui
+              </button>
+              <button class="btn-outline flex-1" (click)="back.emit()">
+                <span class="material-icons" style="font-size:1rem">search</span>
+                Outras arenas
+              </button>
+            </div>
+          </ng-container>
+
+          <!-- ── Fluxo split payment ── -->
+          <ng-container *ngIf="confirmedBooking?.split_payment">
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                   style="background:hsl(152,69%,40%,0.12)">
+                <span class="material-icons" style="font-size:2rem;color:var(--primary)">group</span>
+              </div>
+              <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Cobrança criada!</h2>
+              <p class="text-sm" style="color:var(--muted-foreground)">
+                Pague sua parte e compartilhe o link com os demais jogadores
+              </p>
+            </div>
+
+            <!-- QR Code — parte do usuário atual -->
+            <div class="card p-5 mb-3 text-left">
+              <div class="flex items-center gap-2 mb-4">
+                <span class="material-icons" style="font-size:1rem;color:var(--primary)">pix</span>
+                <span class="font-heading font-semibold text-sm" style="color:var(--foreground)">Seu pagamento</span>
+                <span class="badge badge-primary ml-auto">1 de {{ confirmedBooking?.num_players }} jogadores</span>
+              </div>
+
+              <div class="w-40 h-40 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                   style="background:var(--muted)">
+                <span class="material-icons" style="font-size:3.5rem;color:var(--muted-foreground)">qr_code_2</span>
+              </div>
+
+              <div class="p-3 rounded-xl mb-4 text-center" style="background:var(--muted)">
+                <div class="text-xs mb-0.5" style="color:var(--muted-foreground)">Chave PIX</div>
+                <div class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ arena.phone }}</div>
+              </div>
+
+              <div class="flex justify-between items-center text-sm mb-1">
+                <span style="color:var(--muted-foreground)">Sua parte</span>
+                <span class="font-heading font-bold" style="color:var(--primary)">
+                  R\${{ splitPerPlayer | number:'1.2-2' }}
+                </span>
+              </div>
+              <div class="flex justify-between items-center text-xs">
                 <span style="color:var(--muted-foreground)">Total da reserva</span>
-                <span class="font-medium" style="color:var(--foreground)">R\${{ confirmedBooking?.total_amount | number:'1.2-2' }}</span>
+                <span style="color:var(--muted-foreground)">R\${{ confirmedBooking?.total_amount | number:'1.2-2' }}</span>
               </div>
-              <div class="flex justify-between font-heading font-bold text-base pt-1" style="border-top:1px solid var(--border)">
-                <span style="color:var(--foreground)">
-                  {{ confirmedBooking?.payment_option === '50' ? 'Entrada (50%)' : 'Valor a pagar' }}
+            </div>
+
+            <!-- Progresso da cobrança -->
+            <div class="card p-4 mb-3">
+              <div class="flex items-center justify-between mb-3">
+                <span class="font-heading font-semibold text-sm" style="color:var(--foreground)">Progresso da cobrança</span>
+                <span class="text-xs font-semibold" style="color:var(--primary)">
+                  {{ splitPaidCount }} de {{ confirmedBooking?.num_players }} pagaram
                 </span>
-                <span style="color:var(--primary)">R\${{ confirmedBooking?.paid_amount | number:'1.2-2' }}</span>
               </div>
-              <div *ngIf="confirmedBooking?.payment_option === '50'" class="flex justify-between text-xs pt-0.5">
-                <span style="color:var(--muted-foreground)">Saldo restante no dia</span>
-                <span style="color:var(--muted-foreground)">R\${{ (confirmedBooking?.total_amount || 0) - (confirmedBooking?.paid_amount || 0) | number:'1.2-2' }}</span>
+
+              <!-- Barra de progresso -->
+              <div class="rounded-full overflow-hidden mb-2" style="height:10px;background:var(--muted)">
+                <div class="h-full rounded-full transition-all duration-500"
+                     style="background:var(--primary)"
+                     [style.width.%]="splitProgressPercent">
+                </div>
               </div>
-              <div class="flex justify-between pt-1">
-                <span style="color:var(--muted-foreground)">Status</span>
-                <span class="badge badge-accent">
-                  {{ confirmedBooking?.payment_option === '100' ? 'aguardando pagamento total' : 'aguardando entrada' }}
+
+              <div class="flex justify-between text-xs">
+                <span style="color:var(--muted-foreground)">
+                  R\${{ splitCollectedAmount | number:'1.2-2' }} coletados
+                </span>
+                <span style="color:var(--muted-foreground)">
+                  R\${{ confirmedBooking?.total_amount | number:'1.2-2' }} total
+                </span>
+              </div>
+
+              <!-- Avatares dos jogadores -->
+              <div class="flex items-center gap-1.5 mt-3 flex-wrap">
+                <div *ngFor="let p of splitPlayersArray; let i = index"
+                     class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                     [style.background]="i < splitPaidCount ? 'var(--primary)' : 'var(--muted)'"
+                     [style.color]="i < splitPaidCount ? 'white' : 'var(--muted-foreground)'"
+                     [title]="i < splitPaidCount ? 'Pago' : 'Pendente'">
+                  <span class="material-icons" style="font-size:0.9rem">
+                    {{ i < splitPaidCount ? 'check' : 'person' }}
+                  </span>
+                </div>
+                <span class="text-xs ml-1" style="color:var(--muted-foreground)">
+                  {{ splitPaidCount === confirmedBooking?.num_players ? 'Todos pagaram!' : ((confirmedBooking?.num_players || 0) - splitPaidCount) + ' pendentes' }}
                 </span>
               </div>
             </div>
-          </div>
 
-          <div class="flex gap-2">
-            <button class="btn-outline flex-1" (click)="resetToArena()">
-              <span class="material-icons" style="font-size:1rem">add</span>
-              Nova reserva aqui
-            </button>
-            <button class="btn-outline flex-1" (click)="back.emit()">
-              <span class="material-icons" style="font-size:1rem">search</span>
-              Outras arenas
-            </button>
-          </div>
+            <!-- Compartilhar link — some quando todos pagaram -->
+            <ng-container *ngIf="splitPaidCount < (confirmedBooking?.num_players || 0)">
+              <button class="btn-primary w-full py-3 mb-2" (click)="sharePaymentLink()">
+                <span class="material-icons" style="font-size:1rem">share</span>
+                Compartilhar link de cobrança
+              </button>
+              <p class="text-xs text-center mb-4" style="color:var(--muted-foreground)">
+                Envie para os demais jogadores pagarem a própria parte
+              </p>
+            </ng-container>
+
+            <!-- Simular pagamento (demo) -->
+            <div *ngIf="splitPaidCount < (confirmedBooking?.num_players || 0)"
+                 class="rounded-xl p-3 mb-4 text-center"
+                 style="background:var(--muted);border:1px dashed var(--border)">
+              <p class="text-xs mb-2" style="color:var(--muted-foreground)">Ambiente de demonstração</p>
+              <button class="text-xs font-semibold px-4 py-1.5 rounded-lg"
+                      style="background:var(--card);border:1px solid var(--border);color:var(--foreground)"
+                      (click)="simulateSplitPayment()">
+                <span class="material-icons" style="font-size:0.8rem;vertical-align:middle">bolt</span>
+                Simular pagamento recebido
+              </button>
+            </div>
+
+            <div class="flex gap-2">
+              <button class="btn-outline flex-1" (click)="resetToArena()">
+                <span class="material-icons" style="font-size:1rem">add</span>
+                Nova reserva
+              </button>
+              <button class="btn-outline flex-1" (click)="back.emit()">
+                <span class="material-icons" style="font-size:1rem">search</span>
+                Outras arenas
+              </button>
+            </div>
+          </ng-container>
+
         </div>
 
       </div>
@@ -722,6 +851,10 @@ export class ArenaDetailComponent implements OnInit {
   durationHours = 0;
   confirmedBooking: Booking | null = null;
 
+  // Split payment tracking
+  splitCollectedAmount = 0;
+  splitPaidCount = 0;
+
   form = this.emptyForm();
   private lastDate = this.form.date;
 
@@ -730,6 +863,10 @@ export class ArenaDetailComponent implements OnInit {
   get todayStr()        { return new Date().toISOString().split('T')[0]; }
   get availableCourts() { return this.courts.filter(c => c.status !== 'bloqueada'); }
   get perPlayerAmount() { return this.form.num_players > 1 ? this.form.total_amount / this.form.num_players : this.form.total_amount; }
+
+  get splitPerPlayer()       { return (this.confirmedBooking?.total_amount || 0) / (this.confirmedBooking?.num_players || 1); }
+  get splitProgressPercent() { return Math.min(100, (this.splitCollectedAmount / (this.confirmedBooking?.total_amount || 1)) * 100); }
+  get splitPlayersArray()    { return Array.from({ length: this.confirmedBooking?.num_players || 0 }); }
 
   get availableStartHours() {
     if (this.form.date !== this.todayStr) return this.hours;
@@ -840,10 +977,20 @@ export class ArenaDetailComponent implements OnInit {
       num_players:     this.form.split_payment ? this.form.num_players : undefined,
     });
     this.confirmedBooking = booking;
+    // Inicializa split: quem criou a cobrança já é o 1º pagador
+    if (this.form.split_payment) {
+      this.splitPaidCount       = 1;
+      this.splitCollectedAmount = this.form.total_amount / this.form.num_players;
+    } else {
+      this.splitPaidCount       = 0;
+      this.splitCollectedAmount = 0;
+    }
     this.step = 4;
-    const msg = this.form.payment_option === '100'
-      ? 'Reserva garantida! Conclua o pagamento via PIX.'
-      : 'Reserva criada! Pague a entrada via PIX para confirmar.';
+    const msg = this.form.split_payment
+      ? 'Cobrança criada! Compartilhe o link com os jogadores.'
+      : this.form.payment_option === '100'
+        ? 'Reserva garantida! Conclua o pagamento via PIX.'
+        : 'Reserva criada! Pague a entrada via PIX para confirmar.';
     this.toast.show(msg);
   }
 
@@ -852,7 +999,32 @@ export class ArenaDetailComponent implements OnInit {
     this.selectedCourt = null;
     this.slotConflict = false;
     this.durationHours = 0;
+    this.splitPaidCount = 0;
+    this.splitCollectedAmount = 0;
     this.step = 1;
+  }
+
+  sharePaymentLink(): void {
+    const link = `https://arenaflow.app/cobranca/${this.confirmedBooking?.id}`;
+    if (navigator.share) {
+      navigator.share({ title: 'ArenaFlow — Cobrança', text: 'Pague sua parte da quadra:', url: link });
+    } else {
+      navigator.clipboard.writeText(link);
+      this.toast.show('Link copiado! Cole no WhatsApp dos jogadores.');
+    }
+  }
+
+  simulateSplitPayment(): void {
+    const total    = this.confirmedBooking?.total_amount || 0;
+    const players  = this.confirmedBooking?.num_players  || 1;
+    const perPlayer = total / players;
+    if (this.splitPaidCount < players) {
+      this.splitPaidCount++;
+      this.splitCollectedAmount = Math.min(total, this.splitCollectedAmount + perPlayer);
+      if (this.splitPaidCount === players) {
+        this.toast.show('Reserva confirmada! É possível cancelar até 1h antes do horário selecionado sem taxas.');
+      }
+    }
   }
 
   getSportGradient(sport: string): string {

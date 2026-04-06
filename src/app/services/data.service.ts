@@ -115,4 +115,10 @@ export class DataService {
   getBookingsForClient(name: string): Booking[] {
     return this.getBookings().filter(b => b.client_name.toLowerCase().includes(name.toLowerCase()));
   }
+
+  cancelBooking(id: string): void {
+    this.bookingsSubject.next(
+      this.getBookings().map(b => b.id === id ? { ...b, payment_status: 'cancelado' } : b)
+    );
+  }
 }

@@ -38,7 +38,7 @@ export interface Booking {
   date: string;
   start_hour: string;
   end_hour: string;
-  payment_status: 'pago' | 'pendente' | 'parcial';
+  payment_status: 'pago' | 'pendente' | 'parcial' | 'cancelado';
   total_amount: number;
   paid_amount: number;
   payment_option: '50' | '100';
