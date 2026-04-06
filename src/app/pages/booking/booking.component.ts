@@ -1,13 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 import { Booking, Arena, Court } from '../../models/models';
 
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   styles: [`
     .tab-pill {
       flex: 1;
@@ -57,6 +59,41 @@ import { Booking, Arena, Court } from '../../models/models';
       font-weight: 500;
       background: var(--muted);
       color: var(--muted-foreground);
+    }
+    .btn-review {
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.55rem 0;
+      border-radius: 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      font-family: var(--font-heading, inherit);
+      border: 1.5px solid hsl(38,92%,50%,0.4);
+      background: hsl(38,92%,50%,0.07);
+      color: hsl(38,92%,35%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      transition: background 0.15s;
+    }
+    .btn-review:hover { background: hsl(38,92%,50%,0.14); }
+    .reviewed-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: hsl(38,92%,40%);
+    }
+    .star-btn {
+      background: none;
+      border: none;
+      padding: 0.15rem;
+      cursor: pointer;
+      line-height: 1;
     }
     .btn-cancel {
       width: 100%;
@@ -356,9 +393,76 @@ import { Booking, Arena, Court } from '../../models/models';
                 <span style="color:var(--muted-foreground)">Valor pago</span>
                 <span class="font-heading font-bold" style="color:var(--foreground)">R\${{ b.total_amount | number:'1.2-2' }}</span>
               </div>
+
+              <!-- Avaliar arena -->
+              <ng-container *ngIf="b.payment_status !== 'cancelado'">
+                <button *ngIf="!isReviewed(b.id)" class="btn-review" (click)="openReviewModal(b)">
+                  <span class="material-icons" style="font-size:0.9rem">star_border</span>
+                  Avaliar arena
+                </button>
+                <div *ngIf="isReviewed(b.id)" class="reviewed-tag">
+                  <span class="material-icons" style="font-size:0.9rem">star</span>
+                  Avaliação enviada — obrigado!
+                </div>
+              </ng-container>
             </div>
 
           </div>
+        </div>
+      </div>
+
+      <!-- ── Modal de avaliação ── -->
+      <div class="modal-overlay" *ngIf="reviewingBooking" (click)="closeReviewModal()">
+        <div class="modal-sheet" (click)="$event.stopPropagation()">
+
+          <div class="text-center mb-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                 style="background:hsl(38,92%,50%,0.1)">
+              <span class="material-icons" style="font-size:1.8rem;color:hsl(38,92%,50%)">star</span>
+            </div>
+            <h3 class="font-heading font-bold text-lg" style="color:var(--foreground)">
+              {{ getArenaName(reviewingBooking.arena_id) }}
+            </h3>
+            <p class="text-xs mt-0.5" style="color:var(--muted-foreground)">
+              {{ reviewingBooking.date | date:'dd/MM/yyyy':'UTC' }} · {{ reviewingBooking.start_hour }}–{{ reviewingBooking.end_hour }}
+            </p>
+          </div>
+
+          <!-- Estrelas -->
+          <p class="text-sm text-center font-semibold mb-2" style="color:var(--foreground)">Como foi sua experiência?</p>
+          <div class="flex justify-center gap-1 mb-1">
+            <button *ngFor="let s of [1,2,3,4,5]"
+                    class="star-btn"
+                    (click)="reviewStars = s"
+                    (mouseover)="hoverStar = s"
+                    (mouseleave)="hoverStar = 0">
+              <span class="material-icons"
+                    style="font-size:2.2rem;transition:color 0.1s"
+                    [style.color]="(hoverStar || reviewStars) >= s ? 'hsl(38,92%,50%)' : 'var(--border)'">
+                star
+              </span>
+            </button>
+          </div>
+          <p class="text-xs text-center mb-4 font-medium" style="color:var(--muted-foreground);min-height:1rem">
+            {{ starLabel }}
+          </p>
+
+          <!-- Comentário -->
+          <textarea [(ngModel)]="reviewComment"
+                    class="input w-full mb-4"
+                    style="padding:0.75rem;resize:none;min-height:80px"
+                    rows="3"
+                    maxlength="200"
+                    placeholder="Conte como foi (opcional)..."></textarea>
+
+          <button class="btn-confirm-cancel"
+                  style="background:hsl(38,92%,50%)"
+                  (click)="submitReview()"
+                  [disabled]="reviewStars === 0">
+            <span class="material-icons" style="font-size:1rem;vertical-align:middle;margin-right:0.3rem">send</span>
+            Enviar avaliação
+          </button>
+          <button class="btn-back" (click)="closeReviewModal()">Pular</button>
         </div>
       </div>
 
@@ -375,7 +479,21 @@ export class MyBookingsComponent implements OnInit {
   private arenas: Arena[] = [];
   private courts: Court[] = [];
 
-  constructor(private data: DataService, public auth: AuthService) {}
+  // Review state
+  reviewingBooking: Booking | null = null;
+  reviewStars   = 0;
+  hoverStar     = 0;
+  reviewComment = '';
+  private reviewedIds = new Set<string>(
+    JSON.parse(localStorage.getItem('arenaflow_reviewed_bookings') || '[]')
+  );
+
+  get starLabel(): string {
+    const s = this.hoverStar || this.reviewStars;
+    return ['', 'Ruim', 'Regular', 'Bom', 'Ótimo', 'Excelente!'][s] ?? '';
+  }
+
+  constructor(private data: DataService, public auth: AuthService, private toast: ToastService) {}
 
   ngOnInit() {
     this.arenas = this.data.getArenas();
@@ -468,6 +586,48 @@ export class MyBookingsComponent implements OnInit {
 
   getCourtName(arenaId: string, courtId: string): string {
     return this.courts.find(c => c.arena_id === arenaId && c.id === courtId)?.name || 'Quadra';
+  }
+
+  isReviewed(bookingId: string): boolean {
+    return this.reviewedIds.has(bookingId);
+  }
+
+  openReviewModal(b: Booking): void {
+    this.reviewingBooking = b;
+    this.reviewStars   = 0;
+    this.hoverStar     = 0;
+    this.reviewComment = '';
+  }
+
+  closeReviewModal(): void {
+    this.reviewingBooking = null;
+  }
+
+  submitReview(): void {
+    if (!this.reviewStars || !this.reviewingBooking) return;
+
+    // Persiste avaliação
+    const reviews: any[] = JSON.parse(localStorage.getItem('arenaflow_reviews') || '[]');
+    reviews.push({
+      arena_id:   this.reviewingBooking.arena_id,
+      booking_id: this.reviewingBooking.id,
+      stars:      this.reviewStars,
+      comment:    this.reviewComment.trim(),
+      date:       new Date().toISOString(),
+    });
+    localStorage.setItem('arenaflow_reviews', JSON.stringify(reviews));
+
+    // Marca reserva como avaliada
+    this.reviewedIds.add(this.reviewingBooking.id);
+    localStorage.setItem('arenaflow_reviewed_bookings', JSON.stringify([...this.reviewedIds]));
+
+    // Atualiza rating da arena com média de todas as avaliações dela
+    const arenaReviews = reviews.filter((r: any) => r.arena_id === this.reviewingBooking!.arena_id);
+    const avg = arenaReviews.reduce((s: number, r: any) => s + r.stars, 0) / arenaReviews.length;
+    this.data.updateArenaRating(this.reviewingBooking.arena_id, Math.round(avg * 10) / 10, arenaReviews.length);
+
+    this.toast.show('Obrigado pela avaliação! ⭐');
+    this.closeReviewModal();
   }
 
   openCancelModal(b: Booking): void {

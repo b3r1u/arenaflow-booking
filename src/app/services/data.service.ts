@@ -116,6 +116,12 @@ export class DataService {
     return this.getBookings().filter(b => b.client_name.toLowerCase().includes(name.toLowerCase()));
   }
 
+  updateArenaRating(arenaId: string, newRating: number, newCount: number): void {
+    this.arenasSubject.next(
+      this.getArenas().map(a => a.id === arenaId ? { ...a, rating: newRating, reviews_count: newCount } : a)
+    );
+  }
+
   cancelBooking(id: string): void {
     this.bookingsSubject.next(
       this.getBookings().map(b => b.id === id ? { ...b, payment_status: 'cancelado' } : b)
