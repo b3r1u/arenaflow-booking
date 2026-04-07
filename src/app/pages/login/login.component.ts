@@ -314,7 +314,15 @@ export class LoginComponent {
   async loginWithGoogle() {
     this.loading = true; this.error = '';
     try { await this.auth.loginWithGoogle(); }
-    catch { this.error = 'Não foi possível entrar com Google. Tente novamente.'; this.loading = false; }
+    catch (e: any) {
+      console.error('[Google Auth]', e?.code, e?.message);
+      if (e?.code === 'auth/unauthorized-domain') {
+        this.error = 'Domínio não autorizado no Firebase. Adicione este domínio nas configurações do projeto.';
+      } else {
+        this.error = 'Não foi possível entrar com Google. Tente novamente.';
+      }
+      this.loading = false;
+    }
   }
 
   private friendlyError(code: string): string {
