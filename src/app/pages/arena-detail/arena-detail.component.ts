@@ -71,45 +71,48 @@ import { Arena, Booking, Court } from '../../models/models';
       font-weight: 700;
       border: 1px solid rgba(255,255,255,0.15);
     }
-    .hero-content {
+    .hero-avatar-wrap {
       position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 1rem 1.25rem 1.1rem;
-      display: flex;
-      align-items: flex-end;
-      gap: 0.875rem;
+      bottom: -3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
     }
     .hero-avatar {
-      width: 3.5rem;
-      height: 3.5rem;
-      border-radius: 1rem;
+      width: 6rem;
+      height: 6rem;
+      border-radius: 1.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 1.75rem;
       color: white;
       flex-shrink: 0;
-      border: 2.5px solid rgba(255,255,255,0.28);
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      border: 3px solid var(--background);
+    }
+    .arena-identity {
+      padding-top: 3.75rem;
+      padding-bottom: 0.875rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
     }
     .hero-name {
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
       font-size: 1.3rem;
-      color: white;
+      color: var(--foreground);
       line-height: 1.2;
     }
     .hero-loc {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.2rem;
       font-size: 0.78rem;
-      color: rgba(255,255,255,0.72);
-      margin-top: 0.2rem;
+      color: var(--muted-foreground);
+      margin-top: 0.3rem;
     }
 
     /* ── Info strip ── */
@@ -394,22 +397,26 @@ import { Arena, Booking, Court } from '../../models/models';
           <span style="opacity:0.65;font-weight:400">({{ arena.reviews_count }})</span>
         </div>
 
-        <!-- Arena identity -->
-        <div class="hero-content">
-          <div class="hero-avatar" [style.background]="arena.logo_color">
+        <!-- Avatar (overflows hero bottom) -->
+        <div class="hero-avatar-wrap">
+          <div class="hero-avatar"
+               [style.background]="arena.logo_color"
+               [style.box-shadow]="'0 8px 32px rgba(0,0,0,0.35), 0 0 0 5px ' + arena.logo_color + '44'">
             <img *ngIf="arena.logo_url"
                  [src]="arena.logo_url"
                  alt="Logo"
                  style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
             <span *ngIf="!arena.logo_url">{{ arena.logo_initials }}</span>
           </div>
-          <div>
-            <div class="hero-name">{{ arena.name }}</div>
-            <div class="hero-loc">
-              <span class="material-icons" style="font-size:0.75rem">location_on</span>
-              {{ arena.neighborhood }} · {{ arena.city }}
-            </div>
-          </div>
+        </div>
+      </div>
+
+      <!-- Arena identity -->
+      <div class="arena-identity">
+        <div class="hero-name">{{ arena.name }}</div>
+        <div class="hero-loc">
+          <span class="material-icons" style="font-size:0.75rem">location_on</span>
+          {{ arena.neighborhood }} · {{ arena.city }}
         </div>
       </div>
 
