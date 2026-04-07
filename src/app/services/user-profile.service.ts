@@ -6,20 +6,29 @@ export interface UserProfile {
   photoUrl?: string;
 }
 
-const KEY = 'arenaflow_user_profile';
+const KEY = (uid: string) => `arenaflow_profile_${uid}`;
 
 @Injectable({ providedIn: 'root' })
 export class UserProfileService {
 
-  private data: UserProfile = this.load();
+  private uid: string | null = null;
+  private data: UserProfile = { name: '', phone: '' };
 
-  private load(): UserProfile {
+  /** Chamado pelo AuthService ao confirmar o usuário logado */
+  init(uid: string): void {
+    this.uid = uid;
     try {
-      const raw = localStorage.getItem(KEY);
-      return raw ? JSON.parse(raw) : { name: '', phone: '' };
+      const raw = localStorage.getItem(KEY(uid));
+      this.data = raw ? JSON.parse(raw) : { name: '', phone: '' };
     } catch {
-      return { name: '', phone: '' };
+      this.data = { name: '', phone: '' };
     }
+  }
+
+  /** Chamado pelo AuthService no logout */
+  clear(): void {
+    this.uid = null;
+    this.data = { name: '', phone: '' };
   }
 
   getProfile(): UserProfile {
@@ -27,7 +36,8 @@ export class UserProfileService {
   }
 
   update(updates: Partial<UserProfile>): void {
+    if (!this.uid) return;
     this.data = { ...this.data, ...updates };
-    localStorage.setItem(KEY, JSON.stringify(this.data));
+    localStorage.setItem(KEY(this.uid), JSON.stringify(this.data));
   }
 }
