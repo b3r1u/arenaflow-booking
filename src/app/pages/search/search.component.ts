@@ -41,6 +41,17 @@ import { Arena, SportType } from '../../models/models';
       height: 100px;
       position: relative;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+    .card-banner-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      filter: blur(5px) brightness(0.8) saturate(1.3);
+      transform: scale(1.1);
     }
     .card-banner-deco {
       position: absolute;
@@ -235,6 +246,13 @@ import { Arena, SportType } from '../../models/models';
           <!-- Banner colorido -->
           <div class="card-banner"
                [style.background]="'linear-gradient(145deg,' + arena.logo_color + '60 0%,' + arena.logo_color + '22 100%)'">
+
+            <!-- Foto de perfil como banner desfocado -->
+            <img *ngIf="arena.logo_url"
+                 class="card-banner-img"
+                 [src]="arena.logo_url"
+                 alt="" />
+
             <span class="material-icons card-banner-deco">sports_volleyball</span>
 
             <!-- Rating badge -->
