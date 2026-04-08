@@ -41,7 +41,6 @@ import { Arena, SportType } from '../../models/models';
       height: 100px;
       position: relative;
       flex-shrink: 0;
-      overflow: hidden;
     }
     .card-banner-img {
       position: absolute;
