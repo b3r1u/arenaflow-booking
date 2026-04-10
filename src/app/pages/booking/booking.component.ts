@@ -466,6 +466,12 @@ import { Booking } from '../../models/models';
         </div>
       </div>
 
+      <!-- Selo ASAAS (obrigatório BaaS White Label) -->
+      <div class="mt-8 flex items-center justify-center pb-4">
+        <img class="asaas-selo-positivo" src="https://baas.asaas.com/selos/Servicos_financeiros_Asaas-Reduzida-Positivo.svg?id=f1dd0bdd-6b00-43b3-b7ea-1e265bfb1457" alt="Serviços financeiros fornecidos pelo Asaas" style="height:28px">
+        <img class="asaas-selo-negativo" src="https://baas.asaas.com/selos/Servicos_financeiros_Asaas-Reduzida-Negativo-Branco.svg?id=f1dd0bdd-6b00-43b3-b7ea-1e265bfb1457" alt="Serviços financeiros fornecidos pelo Asaas" style="height:28px">
+      </div>
+
     </div>
   `
 })
