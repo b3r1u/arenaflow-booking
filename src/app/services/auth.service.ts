@@ -51,4 +51,9 @@ export class AuthService {
   logout() {
     return signOut(firebaseAuth);
   }
+
+  getIdToken(): Promise<string | null> {
+    const u = this.user();
+    return u ? u.getIdToken() : Promise.resolve(null);
+  }
 }

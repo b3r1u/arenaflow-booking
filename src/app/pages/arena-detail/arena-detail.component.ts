@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
@@ -6,6 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
+import { BookingService, BookingResult } from '../../services/booking.service';
 
 @Component({
   selector: 'app-arena-detail',
@@ -443,6 +444,14 @@ import { Arena, Booking, Court } from '../../models/models';
           <span class="material-icons" style="font-size:0.9rem;color:var(--primary)">payments</span>
           R\${{ arena.price_from }}–{{ arena.price_to }}/h
         </div>
+        <a *ngIf="arena.address"
+           [href]="mapsUrl()"
+           target="_blank" rel="noopener noreferrer"
+           class="info-chip"
+           style="text-decoration:none;cursor:pointer">
+          <span class="material-icons" style="font-size:0.9rem;color:var(--primary)">near_me</span>
+          {{ arena.address }}{{ arena.neighborhood ? ', ' + arena.neighborhood : '' }}
+        </a>
         <span *ngFor="let s of arena.sports" class="info-chip sport-chip">{{ s }}</span>
       </div>
 
@@ -652,6 +661,12 @@ import { Arena, Booking, Court } from '../../models/models';
               </div>
             </div>
 
+            <p *ngIf="!phoneValid && form.client_phone.length > 0" class="text-xs mt-1" style="color:var(--destructive)">
+              Número inválido
+            </p>
+            <p *ngIf="!phoneValid && form.client_phone.length === 0" class="text-xs mt-1" style="color:var(--muted-foreground)">
+              * Obrigatório para selecionar forma de pagamento
+            </p>
             <!-- Dividir pagamento — só disponível no pagamento total -->
             <div style="border-top:1px solid var(--border);padding-top:1rem" *ngIf="form.payment_option === '100'">
               <div class="flex items-center justify-between mb-3">
@@ -690,7 +705,8 @@ import { Arena, Booking, Court } from '../../models/models';
           <h3 class="font-heading font-semibold text-sm mb-3" style="color:var(--foreground)">Como deseja pagar?</h3>
           <div class="space-y-2 mb-4">
             <!-- 50% -->
-            <div (click)="form.payment_option = '50'; form.split_payment = false" class="card p-4 cursor-pointer flex items-center gap-3"
+            <div (click)="phoneValid && (form.payment_option = '50') && (form.split_payment = false)" class="card p-4 flex items-center gap-3"
+                 [class.cursor-pointer]="phoneValid" [class.opacity-40]="!phoneValid" [class.pointer-events-none]="!phoneValid"
                  [style]="form.payment_option === '50' ? 'border-color:var(--primary);border-width:2px' : 'border-width:1.5px'">
               <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm"
                    [style]="form.payment_option === '50' ? 'background:var(--primary);color:white' : 'background:var(--muted);color:var(--muted-foreground)'">50%</div>
@@ -703,7 +719,8 @@ import { Arena, Booking, Court } from '../../models/models';
               </span>
             </div>
             <!-- 100% -->
-            <div (click)="form.payment_option = '100'" class="card p-4 cursor-pointer flex items-center gap-3"
+            <div (click)="phoneValid && (form.payment_option = '100')" class="card p-4 flex items-center gap-3"
+                 [class.cursor-pointer]="phoneValid" [class.opacity-40]="!phoneValid" [class.pointer-events-none]="!phoneValid"
                  [style]="form.payment_option === '100' ? 'border-color:var(--primary);border-width:2px' : 'border-width:1.5px'">
               <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm"
                    [style]="form.payment_option === '100' ? 'background:var(--primary);color:white' : 'background:var(--muted);color:var(--muted-foreground)'">100%</div>
@@ -751,9 +768,10 @@ import { Arena, Booking, Court } from '../../models/models';
             </div>
           </div>
 
-          <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim()">
-            <span class="material-icons" style="font-size:1rem">{{ form.split_payment ? 'group' : 'pix' }}</span>
-            {{ form.payment_option === '50' ? 'Pagar entrada via PIX' : (form.split_payment ? 'Criar cobrança' : 'Pagar total via PIX') }}
+          <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim() || !phoneValid || confirming">
+            <span *ngIf="confirming" class="material-icons" style="font-size:1rem;animation:spin 1s linear infinite">refresh</span>
+            <span *ngIf="!confirming" class="material-icons" style="font-size:1rem">{{ form.split_payment ? 'group' : 'pix' }}</span>
+            {{ confirming ? 'Criando reserva...' : (form.payment_option === '50' ? 'Pagar entrada via PIX' : (form.split_payment ? 'Criar cobrança' : 'Pagar total via PIX')) }}
           </button>
         </div>
 
@@ -764,21 +782,44 @@ import { Arena, Booking, Court } from '../../models/models';
           <ng-container *ngIf="!confirmedBooking?.split_payment">
             <div class="text-center mb-6">
               <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                   style="background:hsl(152,69%,40%,0.12)">
-                <span class="material-icons" style="font-size:2rem;color:var(--primary)">check_circle</span>
+                   [style]="paymentConfirmed ? 'background:hsl(152,69%,40%,0.18)' : 'background:hsl(152,69%,40%,0.12)'">
+                <span class="material-icons" style="font-size:2rem;color:var(--primary)">
+                  {{ paymentConfirmed ? 'verified' : 'check_circle' }}
+                </span>
               </div>
-              <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Reserva confirmada!</h2>
+              <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">
+                {{ paymentConfirmed ? 'Pagamento confirmado!' : 'Reserva criada!' }}
+              </h2>
               <p class="text-sm" style="color:var(--muted-foreground)">
-                {{ confirmedBooking?.payment_option === '100' ? 'Pague o valor total via PIX para garantir seu horário' : 'Pague a entrada via PIX para confirmar seu horário' }}
+                {{ paymentConfirmed ? 'Sua quadra está garantida. Até lá! 🎉' : (confirmedBooking?.payment_option === '100' ? 'Pague o valor total via PIX para garantir seu horário' : 'Pague a entrada via PIX para confirmar seu horário') }}
               </p>
             </div>
 
             <div class="card p-5 mb-4 text-left">
-              <div class="w-44 h-44 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+              <!-- QR Code real do Pagar.me -->
+              <div class="w-44 h-44 rounded-2xl mx-auto mb-5 overflow-hidden flex items-center justify-center"
                    style="background:var(--muted)">
-                <span class="material-icons" style="font-size:4rem;color:var(--muted-foreground)">qr_code_2</span>
+                <img *ngIf="confirmedBooking?.pix_qr_code_url"
+                     [src]="confirmedBooking!.pix_qr_code_url"
+                     alt="QR Code PIX" style="width:100%;height:100%;object-fit:cover" />
+                <span *ngIf="!confirmedBooking?.pix_qr_code_url"
+                      class="material-icons" style="font-size:4rem;color:var(--muted-foreground)">qr_code_2</span>
               </div>
-              <div class="p-3.5 rounded-xl mb-4 text-center" style="background:var(--muted)">
+              <!-- Copia e cola -->
+              <div *ngIf="confirmedBooking?.pix_qr_code"
+                   class="p-3.5 rounded-xl mb-4" style="background:var(--muted)">
+                <div class="text-xs mb-1" style="color:var(--muted-foreground)">PIX Copia e Cola</div>
+                <div class="font-mono text-xs break-all mb-2" style="color:var(--foreground)">
+                  {{ confirmedBooking!.pix_qr_code | slice:0:60 }}...
+                </div>
+                <button class="btn-ghost w-full py-1.5 text-xs"
+                        (click)="copyPix()">
+                  <span class="material-icons" style="font-size:0.85rem">content_copy</span>
+                  Copiar código PIX
+                </button>
+              </div>
+              <div *ngIf="!confirmedBooking?.pix_qr_code"
+                   class="p-3.5 rounded-xl mb-4 text-center" style="background:var(--muted)">
                 <div class="text-xs mb-1" style="color:var(--muted-foreground)">Chave PIX</div>
                 <div class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ arena.phone }}</div>
               </div>
@@ -950,7 +991,7 @@ import { Arena, Booking, Court } from '../../models/models';
     </div>
   `
 })
-export class ArenaDetailComponent implements OnInit {
+export class ArenaDetailComponent implements OnInit, OnDestroy {
   @Input() arena!: Arena;
   @Output() back = new EventEmitter<void>();
 
@@ -959,7 +1000,10 @@ export class ArenaDetailComponent implements OnInit {
   step = 1;
   slotConflict = false;
   durationHours = 0;
-  confirmedBooking: Booking | null = null;
+  confirmedBooking: BookingResult | null = null;
+  confirming = false;
+  paymentConfirmed = false;
+  private pollInterval: any = null;
 
   // Split payment tracking
   splitCollectedAmount = 0;
@@ -988,12 +1032,16 @@ export class ArenaDetailComponent implements OnInit {
     return this.hours.filter(h => parseInt(h) > currentHour);
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService) {}
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService) {}
 
   get arenaAvgRating(): number {
     if (!this.arenaReviews.length) return 0;
     const avg = this.arenaReviews.reduce((s: number, r: any) => s + r.stars, 0) / this.arenaReviews.length;
     return Math.round(avg * 10) / 10;
+  }
+
+  ngOnDestroy(): void {
+    this.stopPaymentPolling();
   }
 
   ngOnInit() {
@@ -1028,6 +1076,10 @@ export class ArenaDetailComponent implements OnInit {
     if (!this.form.client_phone.trim())
       this.form.client_phone = profile.phone || '';
     this.step = 3;
+  }
+
+  get phoneValid(): boolean {
+    return this.form.client_phone.replace(/\D/g, '').length >= 10;
   }
 
   get paidAmount() {
@@ -1080,45 +1132,67 @@ export class ArenaDetailComponent implements OnInit {
     this.form.total_amount = this.durationHours * (this.selectedCourt?.hourly_rate || 0);
   }
 
-  confirm() {
-    if (!this.form.client_name.trim()) return;
-    const paid = this.paidAmount;
-    const status = this.form.payment_option === '100' ? 'pago' : 'parcial';
-    const booking = this.data.addBooking({
-      arena_id:        this.arena.id,
-      arena_name:      this.arena.name,
-      court_id:        this.form.court_id,
-      court_name:      this.selectedCourt?.name,
-      user_uid:        this.auth.user()?.uid || '',
-      client_name:     this.form.client_name,
-      client_phone:    this.form.client_phone,
-      date:            this.form.date,
-      start_hour:      this.form.start_hour,
-      end_hour:        this.form.end_hour,
-      payment_status:  status,
-      total_amount:    this.form.total_amount,
-      paid_amount:     paid,
-      payment_option:  this.form.payment_option,
-      duration_hours:  this.durationHours,
-      split_payment:   this.form.split_payment,
-      num_players:     this.form.split_payment ? this.form.num_players : undefined,
-    });
-    this.confirmedBooking = booking;
-    // Inicializa split: quem criou a cobrança já é o 1º pagador
-    if (this.form.split_payment) {
-      this.splitPaidCount       = 1;
-      this.splitCollectedAmount = this.form.total_amount / this.form.num_players;
-    } else {
-      this.splitPaidCount       = 0;
-      this.splitCollectedAmount = 0;
+  async confirm(): Promise<void> {
+    if (!this.form.client_name.trim() || this.confirming) return;
+    this.confirming = true;
+    try {
+      const booking = await this.bookingService.createBooking({
+        arena_id:       this.arena.id,
+        court_id:       this.form.court_id,
+        client_name:    this.form.client_name,
+        client_phone:   this.form.client_phone || undefined,
+        date:           this.form.date,
+        start_hour:     this.form.start_hour,
+        end_hour:       this.form.end_hour,
+        payment_option: this.form.payment_option,
+        split_payment:  this.form.split_payment,
+        num_players:    this.form.split_payment ? this.form.num_players : undefined,
+      });
+      this.confirmedBooking = booking;
+      if (this.form.split_payment) {
+        this.splitPaidCount       = 1;
+        this.splitCollectedAmount = booking.total_amount / (booking.num_players || 1);
+      } else {
+        this.splitPaidCount       = 0;
+        this.splitCollectedAmount = 0;
+      }
+      this.step = 4;
+      const msg = this.form.split_payment
+        ? 'Cobrança criada! Compartilhe o link com os jogadores.'
+        : this.form.payment_option === '100'
+          ? 'Reserva garantida! Conclua o pagamento via PIX.'
+          : 'Reserva criada! Pague a entrada via PIX para confirmar.';
+      this.toast.show(msg);
+      // Inicia polling para detectar pagamento confirmado
+      this.startPaymentPolling(booking.id);
+    } catch (err: any) {
+      const msg = err?.error?.error || 'Erro ao criar reserva. Tente novamente.';
+      this.toast.show(msg);
+    } finally {
+      this.confirming = false;
     }
-    this.step = 4;
-    const msg = this.form.split_payment
-      ? 'Cobrança criada! Compartilhe o link com os jogadores.'
-      : this.form.payment_option === '100'
-        ? 'Reserva garantida! Conclua o pagamento via PIX.'
-        : 'Reserva criada! Pague a entrada via PIX para confirmar.';
-    this.toast.show(msg);
+  }
+
+  startPaymentPolling(bookingId: string): void {
+    this.stopPaymentPolling();
+    this.pollInterval = setInterval(async () => {
+      try {
+        const b = await this.bookingService.getBookingSilent(bookingId);
+        if (b.payment_status === 'pago') {
+          this.paymentConfirmed = true;
+          this.confirmedBooking = b;
+          this.stopPaymentPolling();
+          this.toast.show('Pagamento confirmado! Reserva garantida ✅');
+        }
+      } catch { /* ignora */ }
+    }, 5000);
+  }
+
+  stopPaymentPolling(): void {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
   }
 
   resetToArena() {
@@ -1155,15 +1229,31 @@ export class ArenaDetailComponent implements OnInit {
   }
 
   getSportGradient(sport: string): string {
-    if (sport.includes('tennis'))  return 'linear-gradient(135deg, #f59e0b, #d97706)';
-    if (sport.includes('futev'))   return 'linear-gradient(135deg, #0ea5e9, #0284c7)';
-    if (sport.includes('vôlei'))   return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+    if (sport.includes('tennis'))   return 'linear-gradient(135deg, #f59e0b, #d97706)';
+    if (sport.includes('futev'))    return 'linear-gradient(135deg, #0ea5e9, #0284c7)';
+    if (sport.includes('vôlei'))    return 'linear-gradient(135deg, #8b5cf6, #7c3aed)';
+    if (sport.includes('futebol'))  return 'linear-gradient(135deg, #16a34a, #15803d)';
     return `linear-gradient(135deg, ${this.arena.logo_color}, ${this.arena.logo_color}bb)`;
   }
 
   getSportIcon(sport: string): string {
-    if (sport.includes('tennis')) return 'sports_tennis';
+    if (sport.includes('tennis'))  return 'sports_tennis';
+    if (sport.includes('futebol')) return 'sports_soccer';
     return 'sports_volleyball';
+  }
+
+  mapsUrl(): string {
+    if (!this.arena) return '#';
+    const parts = [this.arena.address, this.arena.neighborhood, this.arena.city].filter(Boolean);
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`;
+  }
+
+  copyPix(): void {
+    const code = this.confirmedBooking?.pix_qr_code;
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => {
+      this.toast.show('Código PIX copiado!');
+    });
   }
 
   onPhoneInput(event: Event) {

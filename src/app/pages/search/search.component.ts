@@ -322,6 +322,7 @@ export class SearchComponent implements OnInit {
     { value: 'futevôlei',    label: 'Futevôlei',    icon: 'sports_volleyball' },
     { value: 'vôlei',        label: 'Vôlei',        icon: 'sports_volleyball' },
     { value: 'beach tennis', label: 'Beach Tennis', icon: 'sports_tennis'     },
+    { value: 'futebol',      label: 'Futebol',      icon: 'sports_soccer'     },
   ];
 
   constructor(public arenaService: ArenaService) {}

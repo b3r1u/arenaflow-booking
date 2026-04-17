@@ -1,4 +1,4 @@
-export type SportType = 'futevôlei' | 'vôlei' | 'beach tennis' | 'ambos';
+export type SportType = 'futevôlei' | 'vôlei' | 'beach tennis' | 'futebol' | 'ambos';
 
 export interface Arena {
   id: string;

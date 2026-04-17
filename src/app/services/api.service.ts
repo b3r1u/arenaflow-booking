@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { SILENT_REQUEST } from '../interceptors/loading.interceptor';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
@@ -15,6 +16,12 @@ export class ApiService {
       Object.entries(params).forEach(([k, v]) => { if (v) httpParams = httpParams.set(k, v); });
     }
     return this.http.get<T>(`${this.baseUrl}${path}`, { params: httpParams });
+  }
+
+  getSilent<T>(path: string): Observable<T> {
+    return this.http.get<T>(`${this.baseUrl}${path}`, {
+      context: new HttpContext().set(SILENT_REQUEST, true),
+    });
   }
 
   post<T>(path: string, body: unknown): Observable<T> {

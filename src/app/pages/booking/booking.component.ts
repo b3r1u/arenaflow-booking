@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
-import { Booking } from '../../models/models';
+import { BookingService, BookingResult } from '../../services/booking.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -471,14 +471,15 @@ import { Booking } from '../../models/models';
 })
 export class MyBookingsComponent implements OnInit {
   activeTab: 'andamento' | 'realizadas' = 'andamento';
-  cancellingBooking: Booking | null = null;
+  cancellingBooking: BookingResult | null = null;
   cancellationIsFree = true;
   cancellationFeePercent = 0;
   cancellationFeeAmount = 0;
-  private bookings: Booking[] = [];
+  private bookings: BookingResult[] = [];
+  loading = false;
 
   // Review state
-  reviewingBooking: Booking | null = null;
+  reviewingBooking: BookingResult | null = null;
   reviewStars   = 0;
   hoverStar     = 0;
   reviewComment = '';
@@ -491,10 +492,26 @@ export class MyBookingsComponent implements OnInit {
     return ['', 'Ruim', 'Regular', 'Bom', 'Ótimo', 'Excelente!'][s] ?? '';
   }
 
-  constructor(private data: DataService, public auth: AuthService, private toast: ToastService) {}
+  constructor(
+    private data: DataService,
+    public auth: AuthService,
+    private toast: ToastService,
+    private bookingService: BookingService,
+  ) {}
 
   ngOnInit() {
-    this.data.bookings$.subscribe(b => this.bookings = b);
+    this.loadBookings();
+  }
+
+  async loadBookings(): Promise<void> {
+    this.loading = true;
+    try {
+      this.bookings = await this.bookingService.getMyBookings();
+    } catch {
+      // fallback silencioso
+    } finally {
+      this.loading = false;
+    }
   }
 
   get initials(): string {
@@ -502,33 +519,31 @@ export class MyBookingsComponent implements OnInit {
     return name.split(' ').slice(0, 2).map(n => n[0].toUpperCase()).join('');
   }
 
-  private get userBookings(): Booking[] {
-    const uid = this.auth.user()?.uid;
-    if (!uid) return [];
-    return this.bookings.filter(b => b.user_uid === uid);
+  private get userBookings(): BookingResult[] {
+    return this.bookings;
   }
 
   private get todayStr(): string {
     return new Date().toISOString().split('T')[0];
   }
 
-  get emAndamento(): Booking[] {
+  get emAndamento(): BookingResult[] {
     return this.userBookings
-      .filter(b => b.date >= this.todayStr && b.payment_status !== 'cancelado')
+      .filter(b => b.payment_status === 'pendente' || b.payment_status === 'parcial')
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
-  get jaRealizadas(): Booking[] {
+  get jaRealizadas(): BookingResult[] {
     return this.userBookings
-      .filter(b => b.date < this.todayStr || b.payment_status === 'cancelado')
+      .filter(b => b.payment_status === 'pago' || b.payment_status === 'cancelado')
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
-  getArenaName(b: Booking): string {
+  getArenaName(b: BookingResult): string {
     return b.arena_name || 'Arena';
   }
 
-  getCourtName(b: Booking): string {
+  getCourtName(b: BookingResult): string {
     return b.court_name || 'Quadra';
   }
 
@@ -536,7 +551,7 @@ export class MyBookingsComponent implements OnInit {
     return this.reviewedIds.has(bookingId);
   }
 
-  openReviewModal(b: Booking): void {
+  openReviewModal(b: BookingResult): void {
     this.reviewingBooking = b;
     this.reviewStars   = 0;
     this.hoverStar     = 0;
@@ -569,7 +584,7 @@ export class MyBookingsComponent implements OnInit {
     this.closeReviewModal();
   }
 
-  openCancelModal(b: Booking): void {
+  openCancelModal(b: BookingResult): void {
     this.cancellingBooking = b;
 
     // Lê a política salva pelo admin (ou usa padrão)
