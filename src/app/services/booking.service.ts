@@ -6,8 +6,9 @@ import { AuthService } from './auth.service';
 export interface CreateBookingDto {
   arena_id:       string;
   court_id:       string;
-  client_name:    string;
-  client_phone?:  string;
+  client_name:      string;
+  client_phone?:    string;
+  client_document?: string;
   date:           string;
   start_hour:     string;
   end_hour:       string;

@@ -381,6 +381,55 @@ import { BookingService, BookingResult } from '../../services/booking.service';
       border-radius: 0.25rem;
     }
     .step-dot.done { background: hsl(152,69%,40%,0.4); }
+
+    /* ── Animação bola confirmação ── */
+    .ball-confirmed-wrapper {
+      position: relative;
+      width: clamp(120px, 40vw, 160px);
+      height: clamp(120px, 40vw, 160px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ball-confirmed-glow {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, hsl(152,69%,40%,0.22) 0%, transparent 70%);
+      animation: ball-pulse 2s ease-in-out infinite;
+    }
+    .ball-confirmed {
+      width: 100%;
+      height: 100%;
+      animation: ball-spin 3s linear infinite, ball-bounce 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 6px 16px hsl(152,69%,40%,0.35));
+    }
+    .ball-confirmed-check {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      font-size: 2rem;
+      color: var(--primary);
+      background: var(--card);
+      border-radius: 50%;
+      animation: check-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes ball-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes ball-bounce {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50%       { transform: translateY(-12px) rotate(180deg); }
+    }
+    @keyframes ball-pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.1); }
+    }
+    @keyframes check-pop {
+      from { transform: scale(0) rotate(-45deg); opacity: 0; }
+      to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+    }
   `],
   template: `
     <div>
@@ -659,14 +708,21 @@ import { BookingService, BookingResult } from '../../services/booking.service';
                 <input class="input" style="padding-left:2.25rem" [(ngModel)]="form.client_phone"
                        placeholder="(00) 00000-0000" maxlength="15" (input)="onPhoneInput($event)">
               </div>
+              <p *ngIf="!phoneValid && form.client_phone.length > 0" class="text-xs mt-1" style="color:var(--destructive)">Número inválido</p>
+              <p *ngIf="!phoneValid && form.client_phone.length === 0" class="text-xs mt-1" style="color:var(--muted-foreground)">* Obrigatório para selecionar forma de pagamento</p>
             </div>
 
-            <p *ngIf="!phoneValid && form.client_phone.length > 0" class="text-xs mt-1" style="color:var(--destructive)">
-              Número inválido
-            </p>
-            <p *ngIf="!phoneValid && form.client_phone.length === 0" class="text-xs mt-1" style="color:var(--muted-foreground)">
-              * Obrigatório para selecionar forma de pagamento
-            </p>
+            <!-- CPF -->
+            <div>
+              <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">CPF</label>
+              <div style="position:relative">
+                <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">badge</span>
+                <input class="input" style="padding-left:2.25rem" [(ngModel)]="form.client_document"
+                       placeholder="000.000.000-00" maxlength="14" (input)="onCpfInput($event)">
+              </div>
+              <p *ngIf="!cpfValid && form.client_document.length > 0" class="text-xs mt-1" style="color:var(--destructive)">CPF inválido</p>
+              <p *ngIf="form.client_document.length === 0" class="text-xs mt-1" style="color:var(--muted-foreground)">* Necessário para geração do QR Code PIX</p>
+            </div>
             <!-- Dividir pagamento — só disponível no pagamento total -->
             <div style="border-top:1px solid var(--border);padding-top:1rem" *ngIf="form.payment_option === '100'">
               <div class="flex items-center justify-between mb-3">
@@ -768,7 +824,7 @@ import { BookingService, BookingResult } from '../../services/booking.service';
             </div>
           </div>
 
-          <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim() || !phoneValid || confirming">
+          <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim() || !phoneValid || !cpfValid || confirming">
             <span *ngIf="confirming" class="material-icons" style="font-size:1rem;animation:spin 1s linear infinite">refresh</span>
             <span *ngIf="!confirming" class="material-icons" style="font-size:1rem">{{ form.split_payment ? 'group' : 'pix' }}</span>
             {{ confirming ? 'Criando reserva...' : (form.payment_option === '50' ? 'Pagar entrada via PIX' : (form.split_payment ? 'Criar cobrança' : 'Pagar total via PIX')) }}
@@ -796,8 +852,29 @@ import { BookingService, BookingResult } from '../../services/booking.service';
             </div>
 
             <div class="card p-5 mb-4 text-left">
-              <!-- QR Code real do Pagar.me -->
-              <div class="w-44 h-44 rounded-2xl mx-auto mb-5 overflow-hidden flex items-center justify-center"
+              <!-- Animação de bola após pagamento confirmado -->
+              <div *ngIf="paymentConfirmed" class="flex flex-col items-center justify-center mb-5" style="padding:1rem 0">
+                <div class="ball-confirmed-wrapper">
+                  <div class="ball-confirmed-glow"></div>
+
+                  <!-- Futevôlei / Vôlei / Futebol / Ambos → bola de futebol -->
+                  <img *ngIf="selectedCourt?.sport_type !== 'beach tennis'"
+                       src="assets/bola-de-futebol.png"
+                       alt="bola"
+                       class="ball-confirmed" />
+
+                  <!-- Beach Tennis → raquete -->
+                  <img *ngIf="selectedCourt?.sport_type === 'beach tennis'"
+                       src="assets/remo.png"
+                       alt="raquete beach tennis"
+                       class="ball-confirmed" />
+
+                </div>
+                <p class="text-xs mt-3 font-semibold" style="color:var(--primary)">Pagamento recebido ✓</p>
+              </div>
+
+              <!-- QR Code real do Pagar.me (só enquanto aguarda pagamento) -->
+              <div *ngIf="!paymentConfirmed" class="w-44 h-44 rounded-2xl mx-auto mb-5 overflow-hidden flex items-center justify-center"
                    style="background:var(--muted)">
                 <img *ngIf="confirmedBooking?.pix_qr_code_url"
                      [src]="confirmedBooking!.pix_qr_code_url"
@@ -805,8 +882,8 @@ import { BookingService, BookingResult } from '../../services/booking.service';
                 <span *ngIf="!confirmedBooking?.pix_qr_code_url"
                       class="material-icons" style="font-size:4rem;color:var(--muted-foreground)">qr_code_2</span>
               </div>
-              <!-- Copia e cola -->
-              <div *ngIf="confirmedBooking?.pix_qr_code"
+              <!-- Copia e cola (só enquanto aguarda) -->
+              <div *ngIf="!paymentConfirmed && confirmedBooking?.pix_qr_code"
                    class="p-3.5 rounded-xl mb-4" style="background:var(--muted)">
                 <div class="text-xs mb-1" style="color:var(--muted-foreground)">PIX Copia e Cola</div>
                 <div class="font-mono text-xs break-all mb-2" style="color:var(--foreground)">
@@ -818,7 +895,7 @@ import { BookingService, BookingResult } from '../../services/booking.service';
                   Copiar código PIX
                 </button>
               </div>
-              <div *ngIf="!confirmedBooking?.pix_qr_code"
+              <div *ngIf="!paymentConfirmed && !confirmedBooking?.pix_qr_code"
                    class="p-3.5 rounded-xl mb-4 text-center" style="background:var(--muted)">
                 <div class="text-xs mb-1" style="color:var(--muted-foreground)">Chave PIX</div>
                 <div class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ arena.phone }}</div>
@@ -844,8 +921,8 @@ import { BookingService, BookingResult } from '../../services/booking.service';
                 </div>
                 <div class="flex justify-between pt-1">
                   <span style="color:var(--muted-foreground)">Status</span>
-                  <span class="badge badge-accent">
-                    {{ confirmedBooking?.payment_option === '100' ? 'aguardando pagamento total' : 'aguardando entrada' }}
+                  <span class="badge" [ngClass]="paymentConfirmed ? 'badge-primary' : 'badge-accent'">
+                    {{ paymentConfirmed ? 'pago' : (confirmedBooking?.payment_option === '100' ? 'aguardando pagamento total' : 'aguardando entrada') }}
                   </span>
                 </div>
               </div>
@@ -1062,7 +1139,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     return {
       court_id: '', date: now.toISOString().split('T')[0],
       start_hour: defaultStart, end_hour: '',
-      client_name: '', client_phone: '',
+      client_name: '', client_phone: '', client_document: '',
       num_players: 2, split_payment: false, total_amount: 0,
       payment_option: '50' as '50' | '100'
     };
@@ -1080,6 +1157,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   get phoneValid(): boolean {
     return this.form.client_phone.replace(/\D/g, '').length >= 10;
+  }
+
+  get cpfValid(): boolean {
+    return this.form.client_document.replace(/\D/g, '').length === 11;
   }
 
   get paidAmount() {
@@ -1139,8 +1220,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
       const booking = await this.bookingService.createBooking({
         arena_id:       this.arena.id,
         court_id:       this.form.court_id,
-        client_name:    this.form.client_name,
-        client_phone:   this.form.client_phone || undefined,
+        client_name:     this.form.client_name,
+        client_phone:    this.form.client_phone || undefined,
+        client_document: this.form.client_document.replace(/\D/g, ''),
         date:           this.form.date,
         start_hour:     this.form.start_hour,
         end_hour:       this.form.end_hour,
@@ -1267,5 +1349,18 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     else                     m = `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
     el.value = m;
     this.form.client_phone = m;
+  }
+
+  onCpfInput(event: Event) {
+    const el = event.target as HTMLInputElement;
+    const d = el.value.replace(/\D/g, '').slice(0, 11);
+    let m = '';
+    if (d.length === 0)       m = '';
+    else if (d.length <= 3)   m = d;
+    else if (d.length <= 6)   m = `${d.slice(0,3)}.${d.slice(3)}`;
+    else if (d.length <= 9)   m = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6)}`;
+    else                      m = `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+    el.value = m;
+    this.form.client_document = m;
   }
 }
