@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { SearchComponent } from './pages/search/search.component';
 import { ArenaDetailComponent } from './pages/arena-detail/arena-detail.component';
 import { MyBookingsComponent } from './pages/booking/booking.component';
@@ -9,6 +10,7 @@ import { ToastService } from './services/toast.service';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 import { LoadingService } from './services/loading.service';
+import { UserProfileService } from './services/user-profile.service';
 import { Arena } from './models/models';
 
 type View = 'search' | 'arena' | 'my-bookings' | 'profile';
@@ -16,7 +18,7 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, UserProfileComponent, LoginComponent],
+  imports: [CommonModule, FormsModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, UserProfileComponent, LoginComponent],
   template: `
     <div style="background-color:var(--background);min-height:100vh">
 
@@ -59,6 +61,108 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 
       <!-- Not logged in -->
       <app-login *ngIf="!auth.loading() && !auth.user()"></app-login>
+
+      <!-- Card de boas-vindas: pede CPF e celular na primeira vez -->
+      <div *ngIf="!auth.loading() && auth.user() && showProfileCard"
+           class="vb-overlay" style="z-index:500">
+        <div style="
+          background:var(--card);
+          border:1px solid var(--border);
+          border-radius:1.25rem;
+          padding:2rem 1.5rem;
+          max-width:380px;
+          width:90%;
+          box-shadow:0 20px 60px rgba(0,0,0,0.35);
+          animation:vb-fade-in 0.25s ease;
+        ">
+          <!-- Ícone -->
+          <div style="display:flex;justify-content:center;margin-bottom:1.25rem">
+            <div style="
+              width:56px;height:56px;border-radius:50%;
+              background:var(--primary);
+              display:flex;align-items:center;justify-content:center;
+              box-shadow:0 4px 16px hsl(152,69%,40%,0.35)
+            ">
+              <span class="material-icons" style="color:#fff;font-size:1.75rem">person_outline</span>
+            </div>
+          </div>
+
+          <h2 style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--foreground);margin:0 0 0.4rem">
+            Bem-vindo, {{ (auth.user()?.displayName || 'atleta').split(' ')[0] }}! 👋
+          </h2>
+          <p style="text-align:center;font-size:0.82rem;color:var(--muted-foreground);margin:0 0 1.5rem;line-height:1.5">
+            Complete seu perfil para reservar quadras sem precisar preencher esses dados toda vez.
+          </p>
+
+          <!-- CPF -->
+          <div style="margin-bottom:1rem">
+            <label style="font-size:0.78rem;font-weight:600;color:var(--muted-foreground);display:block;margin-bottom:0.35rem">CPF</label>
+            <input
+              [(ngModel)]="profileForm.cpf"
+              type="text"
+              placeholder="000.000.000-00"
+              maxlength="14"
+              (input)="maskCpf($event)"
+              style="
+                width:100%;box-sizing:border-box;
+                padding:0.65rem 0.9rem;
+                border:1px solid var(--border);
+                border-radius:0.6rem;
+                background:var(--background);
+                color:var(--foreground);
+                font-size:0.9rem;
+                outline:none;
+              "
+            />
+          </div>
+
+          <!-- Celular -->
+          <div style="margin-bottom:1.5rem">
+            <label style="font-size:0.78rem;font-weight:600;color:var(--muted-foreground);display:block;margin-bottom:0.35rem">Celular</label>
+            <input
+              [(ngModel)]="profileForm.phone"
+              type="tel"
+              placeholder="(00) 00000-0000"
+              maxlength="15"
+              (input)="maskPhone($event)"
+              style="
+                width:100%;box-sizing:border-box;
+                padding:0.65rem 0.9rem;
+                border:1px solid var(--border);
+                border-radius:0.6rem;
+                background:var(--background);
+                color:var(--foreground);
+                font-size:0.9rem;
+                outline:none;
+              "
+            />
+          </div>
+
+          <!-- Botões -->
+          <button
+            (click)="saveProfileCard()"
+            [disabled]="savingProfile"
+            style="
+              width:100%;padding:0.75rem;
+              background:var(--primary);color:#fff;
+              border:none;border-radius:0.75rem;
+              font-size:0.95rem;font-weight:700;
+              cursor:pointer;margin-bottom:0.65rem;
+              opacity: savingProfile ? 0.7 : 1;
+            ">
+            {{ savingProfile ? 'Salvando...' : 'Salvar e continuar' }}
+          </button>
+          <button
+            (click)="skipProfileCard()"
+            style="
+              width:100%;padding:0.5rem;
+              background:transparent;color:var(--muted-foreground);
+              border:none;font-size:0.82rem;cursor:pointer;
+            ">
+            Preencher depois
+          </button>
+        </div>
+      </div>
 
       <!-- Logged in -->
       <ng-container *ngIf="!auth.loading() && auth.user()">
@@ -235,15 +339,61 @@ export class AppComponent implements OnInit {
   toastMsg: string | null = null;
   menuOpen = false;
 
+  showProfileCard = false;
+  savingProfile   = false;
+  profileForm     = { cpf: '', phone: '' };
+
   constructor(
     public theme: ThemeService,
     public auth: AuthService,
     public loading: LoadingService,
-    private toast: ToastService
+    private toast: ToastService,
+    private userProfile: UserProfileService,
   ) {}
 
   ngOnInit() {
     this.toast.message$.subscribe(m => this.toastMsg = m);
+
+    // Exibe card quando o perfil carrega incompleto (sem CPF ou sem celular)
+    this.userProfile.profileLoaded$.subscribe(isIncomplete => {
+      this.showProfileCard = isIncomplete;
+    });
+  }
+
+  maskCpf(event: Event) {
+    let v = (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d+)/, '$1.$2');
+    this.profileForm.cpf = (event.target as HTMLInputElement).value = v;
+  }
+
+  maskPhone(event: Event) {
+    let v = (event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10) v = v.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    else if (v.length > 6) v = v.replace(/(\d{2})(\d{4})(\d+)/, '($1) $2-$3');
+    else if (v.length > 2) v = v.replace(/(\d{2})(\d+)/, '($1) $2');
+    this.profileForm.phone = (event.target as HTMLInputElement).value = v;
+  }
+
+  saveProfileCard() {
+    if (this.savingProfile) return;
+    this.savingProfile = true;
+    this.userProfile.saveProfile(this.profileForm).subscribe({
+      next: () => {
+        this.savingProfile    = false;
+        this.showProfileCard  = false;
+        this.toast.show('Perfil salvo com sucesso!');
+      },
+      error: () => {
+        this.savingProfile = false;
+        this.toast.show('Erro ao salvar. Tente novamente.');
+      },
+    });
+  }
+
+  skipProfileCard() {
+    this.showProfileCard = false;
   }
 
   openArena(arena: Arena) {

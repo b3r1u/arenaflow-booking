@@ -1,43 +1,63 @@
 import { Injectable } from '@angular/core';
+import { Subject } from 'rxjs';
+import { tap } from 'rxjs';
+import { ApiService } from './api.service';
 
 export interface UserProfile {
-  name: string;
-  phone: string;
+  name:     string;
+  phone:    string;
+  cpf:      string;
   photoUrl?: string;
 }
-
-const KEY = (uid: string) => `arenaflow_profile_${uid}`;
 
 @Injectable({ providedIn: 'root' })
 export class UserProfileService {
 
-  private uid: string | null = null;
-  private data: UserProfile = { name: '', phone: '' };
+  private _profile: UserProfile = { name: '', phone: '', cpf: '' };
 
-  /** Chamado pelo AuthService ao confirmar o usuário logado */
-  init(uid: string): void {
-    this.uid = uid;
-    try {
-      const raw = localStorage.getItem(KEY(uid));
-      this.data = raw ? JSON.parse(raw) : { name: '', phone: '' };
-    } catch {
-      this.data = { name: '', phone: '' };
-    }
+  /** Emite true quando o perfil está incompleto, false quando completo */
+  readonly profileLoaded$ = new Subject<boolean>();
+
+  constructor(private api: ApiService) {}
+
+  /** Carrega perfil da API após login */
+  loadFromApi() {
+    return this.api.get<{ user: any }>('/users/me').pipe(
+      tap({ next: ({ user }) => {
+        this._profile = {
+          name:  user.name  || '',
+          phone: user.phone || '',
+          cpf:   user.cpf   || '',
+        };
+        this.profileLoaded$.next(this.isIncomplete());
+      }})
+    );
   }
 
   /** Chamado pelo AuthService no logout */
   clear(): void {
-    this.uid = null;
-    this.data = { name: '', phone: '' };
+    this._profile = { name: '', phone: '', cpf: '' };
   }
 
   getProfile(): UserProfile {
-    return { ...this.data };
+    return { ...this._profile };
   }
 
-  update(updates: Partial<UserProfile>): void {
-    if (!this.uid) return;
-    this.data = { ...this.data, ...updates };
-    localStorage.setItem(KEY(this.uid), JSON.stringify(this.data));
+  /** Verifica se o perfil está incompleto (sem CPF ou sem celular) */
+  isIncomplete(): boolean {
+    return !this._profile.cpf || !this._profile.phone;
+  }
+
+  /** Salva CPF e phone na API */
+  saveProfile(updates: Partial<UserProfile>) {
+    return this.api.put<{ user: any }>('/users/me', updates).pipe(
+      tap({ next: ({ user }) => {
+        this._profile = {
+          name:  user.name  || '',
+          phone: user.phone || '',
+          cpf:   user.cpf   || '',
+        };
+      }})
+    );
   }
 }

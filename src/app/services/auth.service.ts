@@ -21,7 +21,10 @@ export class AuthService {
   constructor(private profileService: UserProfileService) {
     onAuthStateChanged(firebaseAuth, (u) => {
       if (u) {
-        this.profileService.init(u.uid);
+        // Aguarda token disponível antes de chamar a API
+        u.getIdToken().then(() => {
+          this.profileService.loadFromApi().subscribe({ error: () => {} });
+        });
       } else {
         this.profileService.clear();
       }

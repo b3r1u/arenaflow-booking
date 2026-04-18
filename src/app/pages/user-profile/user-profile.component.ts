@@ -130,8 +130,9 @@ import { UserProfileService } from '../../services/user-profile.service';
 export class UserProfileComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
-  form = { name: '', phone: '' };
+  form = { name: '', phone: '', cpf: '' };
   photoSrc: string | null = null;
+  saving = false;
 
   constructor(
     public auth: AuthService,
@@ -143,6 +144,7 @@ export class UserProfileComponent implements OnInit {
     const p = this.profileService.getProfile();
     this.form.name  = p.name  || this.auth.user()?.displayName || '';
     this.form.phone = p.phone || '';
+    this.form.cpf   = p.cpf   || '';
     this.photoSrc   = p.photoUrl || this.auth.user()?.photoURL || null;
   }
 
@@ -181,12 +183,22 @@ export class UserProfileComponent implements OnInit {
   }
 
   save() {
-    this.profileService.update({
-      name:     this.form.name.trim(),
-      phone:    this.form.phone,
-      photoUrl: this.photoSrc ?? undefined,
+    if (this.saving) return;
+    this.saving = true;
+    this.profileService.saveProfile({
+      name:  this.form.name.trim(),
+      phone: this.form.phone,
+      cpf:   this.form.cpf,
+    }).subscribe({
+      next: () => {
+        this.saving = false;
+        this.toast.show('Perfil salvo com sucesso!');
+      },
+      error: () => {
+        this.saving = false;
+        this.toast.show('Erro ao salvar perfil.');
+      },
     });
-    this.toast.show('Perfil salvo com sucesso!');
   }
 
   async logout() {

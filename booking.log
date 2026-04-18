@@ -1,0 +1,355 @@
+- Building...
+
+Initial chunk files | Names         |  Raw size
+main.js             | main          | 241.49 kB | 
+polyfills.js        | polyfills     |  88.09 kB | 
+styles.css          | styles        |  21.59 kB | 
+
+                    | Initial total | 351.16 kB
+
+Application bundle generation complete. [11.640 seconds]
+
+Watch mode enabled. Watching for file changes...
+  ➜  Local:   http://localhost:4201/
+- Changes detected. Rebuilding...
+
+Initial chunk files | Names |  Raw size
+main.js             | main  | 241.49 kB | 
+
+Application bundle generation complete. [1.306 seconds]
+
+Page reload sent to client(s).
+- Changes detected. Rebuilding...
+
+Initial chunk files | Names |  Raw size
+main.js             | main  | 241.58 kB | 
+
+Application bundle generation complete. [0.966 seconds]
+
+Page reload sent to client(s).
+- Changes detected. Rebuilding...
+
+Initial chunk files | Names |  Raw size
+main.js             | main  | 241.79 kB | 
+
+Application bundle generation complete. [0.560 seconds]
+
+Page reload sent to client(s).
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.657 seconds]
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+X [ERROR] TS2339: Property 'init' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/services/auth.service.ts:24:28:
+      24 │         this.profileService.init(u.uid);
+         ╵                             ~~~~
+
+
+X [ERROR] TS2339: Property 'put' does not exist on type 'ApiService'. [plugin angular-compiler]
+
+    src/app/services/user-profile.service.ts:48:20:
+      48 │     return this.api.put<{ user: any }>('/users/me', updates).pipe(
+         ╵                     ~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.874 seconds]
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+X [ERROR] TS2339: Property 'init' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/services/auth.service.ts:24:28:
+      24 │         this.profileService.init(u.uid);
+         ╵                             ~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.102 seconds]
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.183 seconds]
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.218 seconds]
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.294 seconds]
+
+X [ERROR] NG9: Property 'showProfileCard' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:66:52:
+      66 │       <div *ngIf="!auth.loading() && auth.user() && showProfileCard"
+         ╵                                                     ~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'profileForm' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:101:27:
+      101 │               [(ngModel)]="profileForm.cpf"
+          ╵                            ~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'profileForm' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:101:27:
+      101 │               [(ngModel)]="profileForm.cpf"
+          ╵                            ~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'maskCpf' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:105:23:
+      105 │               (input)="maskCpf($event)"
+          ╵                        ~~~~~~~
+
+
+X [ERROR] NG9: Property 'profileForm' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:123:27:
+      123 │               [(ngModel)]="profileForm.phone"
+          ╵                            ~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'profileForm' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:123:27:
+      123 │               [(ngModel)]="profileForm.phone"
+          ╵                            ~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'maskPhone' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:127:23:
+      127 │               (input)="maskPhone($event)"
+          ╵                        ~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'saveProfileCard' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:143:21:
+      143 │             (click)="saveProfileCard()"
+          ╵                      ~~~~~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'savingProfile' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:144:24:
+      144 │             [disabled]="savingProfile"
+          ╵                         ~~~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'savingProfile' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:153:15:
+      153 │             {{ savingProfile ? 'Salvando...' : 'Salvar e continua...
+          ╵                ~~~~~~~~~~~~~
+
+
+X [ERROR] NG9: Property 'skipProfileCard' does not exist on type 'AppComponent'. [plugin angular-compiler]
+
+    src/app/app.component.ts:156:21:
+      156 │             (click)="skipProfileCard()"
+          ╵                      ~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.353 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS7053: Element implicitly has an 'any' type because expression of type '"effect"' can't be used to index type 'WritableSignal<User | null>'.
+  Property 'effect' does not exist on type 'WritableSignal<User | null>'. [plugin angular-compiler]
+
+    src/app/app.component.ts:358:4:
+      358 │     this.auth.user['effect'] ? null : null; // força leitura rea...
+          ╵     ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.660 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS7053: Element implicitly has an 'any' type because expression of type '"effect"' can't be used to index type 'WritableSignal<User | null>'.
+  Property 'effect' does not exist on type 'WritableSignal<User | null>'. [plugin angular-compiler]
+
+    src/app/app.component.ts:358:4:
+      358 │     this.auth.user['effect'] ? null : null; // força leitura rea...
+          ╵     ~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.309 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [1.068 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.802 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:184:24:
+      184 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.774 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'update' does not exist on type 'UserProfileService'. [plugin angular-compiler]
+
+    src/app/pages/user-profile/user-profile.component.ts:186:24:
+      186 │     this.profileService.update({
+          ╵                         ~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Application bundle generation failed. [0.225 seconds]
+
+X [ERROR] NG2: Object is possibly 'undefined'. [plugin angular-compiler]
+
+    src/app/app.component.ts:91:26:
+      91 │ ...m-vindo, {{ auth.user()?.displayName?.split(' ')[0] || 'atleta'...
+         ╵                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+- Changes detected. Rebuilding...
+
+Initial chunk files | Names         |  Raw size
+main.js             | main          | 252.34 kB | 
+polyfills.js        | polyfills     |  88.09 kB | 
+styles.css          | styles        |  21.59 kB | 
+
+                    | Initial total | 362.01 kB
+
+Application bundle generation complete. [0.196 seconds]
+
+Page reload sent to client(s).

@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
 import { BookingService, BookingResult } from '../../services/booking.service';
+import { ArenaService } from '../../services/arena.service';
 
 @Component({
   selector: 'app-arena-detail',
@@ -700,8 +701,8 @@ import { BookingService, BookingResult } from '../../services/booking.service';
               </div>
             </div>
 
-            <!-- Telefone -->
-            <div>
+            <!-- Telefone (oculto se já salvo no perfil) -->
+            <div *ngIf="!hasSavedPhone">
               <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Telefone (WhatsApp)</label>
               <div style="position:relative">
                 <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">phone</span>
@@ -712,8 +713,8 @@ import { BookingService, BookingResult } from '../../services/booking.service';
               <p *ngIf="!phoneValid && form.client_phone.length === 0" class="text-xs mt-1" style="color:var(--muted-foreground)">* Obrigatório para selecionar forma de pagamento</p>
             </div>
 
-            <!-- CPF -->
-            <div>
+            <!-- CPF (oculto se já salvo no perfil) -->
+            <div *ngIf="!hasSavedCpf">
               <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">CPF</label>
               <div style="position:relative">
                 <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">badge</span>
@@ -1109,7 +1110,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     return this.hours.filter(h => parseInt(h) > currentHour);
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService) {}
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService) {}
 
   get arenaAvgRating(): number {
     if (!this.arenaReviews.length) return 0;
@@ -1127,6 +1128,15 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     this.arenaReviews = all
       .filter((r: any) => r.arena_id === this.arena.id)
       .sort((a: any, b: any) => b.date.localeCompare(a.date));
+
+    // Busca dados frescos da arena para garantir preços atualizados
+    this.arenaService.getArenaById(this.arena.id).subscribe({
+      next: ({ arena }) => {
+        this.arena = arena;
+        this.courts = arena.courts ?? [];
+      },
+      error: () => { /* mantém dados do cache em caso de erro */ },
+    });
   }
 
   emptyForm() {
@@ -1150,10 +1160,28 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     const user    = this.auth.user();
     if (!this.form.client_name.trim())
       this.form.client_name = profile.name || user?.displayName || '';
-    if (!this.form.client_phone.trim())
-      this.form.client_phone = profile.phone || '';
+    if (!this.form.client_phone.trim() && profile.phone)
+      this.form.client_phone = this.formatPhone(profile.phone);
+    if (!this.form.client_document.trim() && profile.cpf)
+      this.form.client_document = this.formatCpf(profile.cpf);
     this.step = 3;
   }
+
+  private formatPhone(digits: string): string {
+    const d = digits.replace(/\D/g, '');
+    if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    return digits;
+  }
+
+  private formatCpf(digits: string): string {
+    const d = digits.replace(/\D/g, '');
+    if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    return digits;
+  }
+
+  get hasSavedPhone(): boolean { return !!this.userProfile.getProfile().phone; }
+  get hasSavedCpf():   boolean { return !!this.userProfile.getProfile().cpf;   }
 
   get phoneValid(): boolean {
     return this.form.client_phone.replace(/\D/g, '').length >= 10;
