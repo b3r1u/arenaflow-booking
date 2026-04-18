@@ -1230,7 +1230,8 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         split_payment:  this.form.split_payment,
         num_players:    this.form.split_payment ? this.form.num_players : undefined,
       });
-      this.confirmedBooking = booking;
+      this.confirmedBooking  = booking;
+      this.paymentConfirmed  = false;   // garante estado limpo ao criar nova reserva
       if (this.form.split_payment) {
         this.splitPaidCount       = 1;
         this.splitCollectedAmount = booking.total_amount / (booking.num_players || 1);
