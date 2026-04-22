@@ -152,15 +152,6 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
             ">
             {{ savingProfile ? 'Salvando...' : 'Salvar e continuar' }}
           </button>
-          <button
-            (click)="skipProfileCard()"
-            style="
-              width:100%;padding:0.5rem;
-              background:transparent;color:var(--muted-foreground);
-              border:none;font-size:0.82rem;cursor:pointer;
-            ">
-            Preencher depois
-          </button>
         </div>
       </div>
 
@@ -202,8 +193,11 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
             <button (click)="menuOpen = !menuOpen"
                     class="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0"
                     style="border:2px solid var(--border)">
-              <img *ngIf="auth.user()?.photoURL" [src]="auth.user()!.photoURL!" class="w-full h-full object-cover">
-              <span *ngIf="!auth.user()?.photoURL" class="text-xs font-bold" style="color:var(--foreground)">
+              <img *ngIf="auth.user()?.photoURL && !avatarError"
+                   [src]="auth.user()!.photoURL!"
+                   class="w-full h-full object-cover"
+                   (error)="avatarError = true">
+              <span *ngIf="!auth.user()?.photoURL || avatarError" class="text-xs font-bold" style="color:var(--foreground)">
                 {{ auth.user()?.displayName?.charAt(0) || '?' }}
               </span>
             </button>
@@ -337,7 +331,8 @@ export class AppComponent implements OnInit {
   view: View = 'search';
   selectedArena: Arena | null = null;
   toastMsg: string | null = null;
-  menuOpen = false;
+  menuOpen   = false;
+  avatarError = false;
 
   showProfileCard = false;
   savingProfile   = false;

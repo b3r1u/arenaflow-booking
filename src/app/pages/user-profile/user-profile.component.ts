@@ -48,8 +48,9 @@ import { UserProfileService } from '../../services/user-profile.service';
       <div class="text-center mb-6">
         <div class="relative inline-block">
           <div class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center avatar-ring mx-auto">
-            <img *ngIf="photoSrc" [src]="photoSrc" class="w-full h-full object-cover" alt="Foto de perfil">
-            <span *ngIf="!photoSrc" class="font-heading font-bold text-3xl text-white">{{ initials }}</span>
+            <img *ngIf="photoSrc && !photoError" [src]="photoSrc" class="w-full h-full object-cover" alt="Foto de perfil"
+                 (error)="photoError = true">
+            <span *ngIf="!photoSrc || photoError" class="font-heading font-bold text-3xl text-white">{{ initials }}</span>
           </div>
           <button (click)="fileInput.click()"
                   class="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center"
@@ -131,7 +132,8 @@ export class UserProfileComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   form = { name: '', phone: '', cpf: '' };
-  photoSrc: string | null = null;
+  photoSrc:   string | null = null;
+  photoError  = false;
   saving = false;
 
   constructor(
@@ -176,7 +178,8 @@ export class UserProfileComponent implements OnInit {
     }
     const reader = new FileReader();
     reader.onload = (e) => {
-      this.photoSrc = e.target?.result as string;
+      this.photoSrc   = e.target?.result as string;
+      this.photoError = false; // nova foto — reseta flag de erro
     };
     reader.readAsDataURL(file);
     input.value = '';
