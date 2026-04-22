@@ -12,18 +12,28 @@ import {
 } from 'firebase/auth';
 import { firebaseAuth } from '../firebase.config';
 import { UserProfileService } from './user-profile.service';
+import { ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   user = signal<User | null>(null);
   loading = signal(true);
 
-  constructor(private profileService: UserProfileService) {
+  constructor(private profileService: UserProfileService, private api: ApiService) {
     onAuthStateChanged(firebaseAuth, (u) => {
       if (u) {
-        // Aguarda token disponível antes de chamar a API
+        // 1. Aguarda token disponível
+        // 2. Cria/busca usuário no banco via POST /auth/me
+        // 3. Carrega perfil e verifica se está incompleto
         u.getIdToken().then(() => {
-          this.profileService.loadFromApi().subscribe({ error: () => {} });
+          this.api.post<any>('/auth/me', { role: 'CLIENT' }).subscribe({
+            next: () => {
+              this.profileService.loadFromApi().subscribe({ error: () => {} });
+            },
+            error: () => {
+              this.profileService.loadFromApi().subscribe({ error: () => {} });
+            },
+          });
         });
       } else {
         this.profileService.clear();
