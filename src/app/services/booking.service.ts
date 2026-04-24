@@ -74,6 +74,15 @@ export class BookingService {
     );
   }
 
+  async getAvailability(arenaId: string, courtId: string, date: string): Promise<{ start_hour: string; end_hour: string }[]> {
+    const res = await firstValueFrom(
+      this.api.get<{ slots: { start_hour: string; end_hour: string }[] }>(
+        `/bookings/availability?arena_id=${arenaId}&court_id=${courtId}&date=${date}`
+      )
+    );
+    return res.slots;
+  }
+
   async getMyBookings(): Promise<BookingResult[]> {
     const res = await firstValueFrom(
       this.api.get<{ bookings: BookingResult[] }>('/bookings/me')
