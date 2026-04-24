@@ -333,34 +333,65 @@ import { ReviewService, Review } from '../../services/review.service';
       padding: 0.25rem 0 0.5rem;
     }
     .reviews-carousel::-webkit-scrollbar { display: none; }
-    .review-card {
-      min-width: 210px;
-      max-width: 210px;
-      flex-shrink: 0;
+    /* ── Carrossel de avaliações ── */
+    .review-track {
+      position: relative;
+      min-height: 136px;
+    }
+    .review-slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: translateX(28px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+      pointer-events: none;
+    }
+    .review-slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .review-slide-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 0.875rem;
-      padding: 0.875rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
+      border-radius: 1rem;
+      padding: 1rem 1.1rem;
     }
-    .review-comment {
-      font-size: 0.75rem;
+    .review-slide-comment {
+      font-size: 0.8rem;
       color: var(--foreground);
-      line-height: 1.5;
+      line-height: 1.55;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
-      flex: 1;
     }
-    .review-meta {
-      font-size: 0.68rem;
-      color: var(--muted-foreground);
+    .review-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: hsl(152,69%,40%,0.15);
+      color: var(--primary);
+      font-size: 0.7rem;
+      font-weight: 700;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .review-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.25s, transform 0.25s, width 0.25s;
+    }
+    .review-dot.active {
+      background: hsl(38,92%,50%);
+      transform: scale(1.25);
+      width: 18px;
+      border-radius: 4px;
     }
 
     /* ── Step indicator ── */
@@ -638,54 +669,6 @@ import { ReviewService, Review } from '../../services/review.service';
           {{ arena.description }}
         </p>
 
-        <!-- ═══════ AVALIAÇÕES (carrossel — só step 1) ═══════ -->
-        <div *ngIf="step === 1 && arenaReviews.length > 0"
-             class="py-4" style="border-bottom:1px solid var(--border)">
-
-          <!-- Header da seção -->
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-heading font-semibold text-sm" style="color:var(--foreground)">
-              Avaliações dos clientes
-            </h3>
-            <div class="flex items-center gap-1 px-2.5 py-1 rounded-full"
-                 style="background:hsl(38,92%,50%,0.1)">
-              <span class="material-icons" style="font-size:0.8rem;color:hsl(38,92%,50%)">star</span>
-              <span class="text-xs font-bold" style="color:hsl(38,92%,35%)">{{ arenaAvgRating }}</span>
-              <span class="text-xs" style="color:hsl(38,92%,45%)">({{ arenaReviews.length }})</span>
-            </div>
-          </div>
-
-          <!-- Carrossel -->
-          <div class="reviews-carousel">
-            <div *ngFor="let r of arenaReviews" class="review-card">
-
-              <!-- Estrelas -->
-              <div class="flex gap-0.5">
-                <span *ngFor="let s of [1,2,3,4,5]"
-                      class="material-icons"
-                      style="font-size:0.9rem"
-                      [style.color]="s <= r.stars ? 'hsl(38,92%,50%)' : 'var(--border)'">star</span>
-              </div>
-
-              <!-- Comentário -->
-              <p *ngIf="r.comment" class="review-comment">"{{ r.comment }}"</p>
-              <p *ngIf="!r.comment" class="review-comment" style="color:var(--muted-foreground);font-style:italic">
-                Sem comentário
-              </p>
-
-              <!-- Meta -->
-              <div class="review-meta">
-                <span class="flex items-center gap-0.5 font-semibold truncate" style="max-width:110px">
-                  <span class="material-icons" style="font-size:0.7rem;flex-shrink:0">person</span>
-                  {{ r.user_name }}
-                </span>
-                <span>{{ r.created_at | date:'dd/MM/yy' }}</span>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
         <!-- Step indicator (steps 1–3) -->
         <div *ngIf="step < 4" class="flex items-center gap-3 pt-4 pb-1">
           <div class="step-bar">
@@ -754,6 +737,70 @@ import { ReviewService, Review } from '../../services/review.service';
             <p class="font-heading font-semibold mb-1" style="color:var(--foreground)">Nenhuma quadra disponível</p>
             <p class="text-sm" style="color:var(--muted-foreground)">Tente novamente mais tarde</p>
           </div>
+
+          <!-- ═══ AVALIAÇÕES (carrossel — abaixo das quadras) ═══ -->
+          <div *ngIf="arenaReviews.length > 0" class="mt-6 pb-2">
+
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-heading font-semibold text-sm" style="color:var(--foreground)">
+                O que dizem os clientes
+              </h3>
+              <div class="flex items-center gap-1 px-2.5 py-1 rounded-full"
+                   style="background:hsl(38,92%,50%,0.1)">
+                <span class="material-icons" style="font-size:0.8rem;color:hsl(38,92%,50%)">star</span>
+                <span class="text-xs font-bold" style="color:hsl(38,92%,35%)">{{ arenaAvgRating }}</span>
+                <span class="text-xs" style="color:hsl(38,92%,45%)"> · {{ arenaReviews.length }} {{ arenaReviews.length === 1 ? 'avaliação' : 'avaliações' }}</span>
+              </div>
+            </div>
+
+            <!-- Track -->
+            <div class="review-track">
+              <div *ngFor="let r of arenaReviews; let i = index"
+                   class="review-slide"
+                   [class.active]="reviewIdx === i">
+                <div class="review-slide-card">
+
+                  <!-- Estrelas + label -->
+                  <div class="flex items-center gap-1.5 mb-2">
+                    <div class="flex gap-0.5">
+                      <span *ngFor="let s of [1,2,3,4,5]" class="material-icons"
+                            style="font-size:0.95rem"
+                            [style.color]="s <= r.stars ? 'hsl(38,92%,50%)' : 'var(--border)'">star</span>
+                    </div>
+                    <span class="text-xs font-semibold" style="color:var(--muted-foreground)">
+                      {{ ['','Ruim','Regular','Bom','Ótimo','Excelente'][r.stars] }}
+                    </span>
+                  </div>
+
+                  <!-- Comentário -->
+                  <p class="review-slide-comment" [style.font-style]="r.comment ? 'normal' : 'italic'"
+                     [style.color]="r.comment ? 'var(--foreground)' : 'var(--muted-foreground)'">
+                    {{ r.comment || 'Sem comentário.' }}
+                  </p>
+
+                  <!-- Footer -->
+                  <div class="flex items-center gap-2 mt-3">
+                    <div class="review-avatar">{{ (r.user_name || '?')[0].toUpperCase() }}</div>
+                    <span class="text-xs font-semibold truncate" style="color:var(--foreground);max-width:130px">{{ r.user_name }}</span>
+                    <span class="text-xs ml-auto flex-shrink-0" style="color:var(--muted-foreground)">{{ r.created_at | date:'dd/MM/yy' }}</span>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- Dots (só quando > 1) -->
+            <div *ngIf="arenaReviews.length > 1" class="flex justify-center items-center gap-1.5 mt-3">
+              <button *ngFor="let r of arenaReviews; let i = index"
+                      type="button"
+                      class="review-dot"
+                      [class.active]="reviewIdx === i"
+                      (click)="setReviewSlide(i)">
+              </button>
+            </div>
+
+          </div>
+
         </div>
 
         <!-- ══ STEP 2: Data e horário ══ -->
@@ -1369,6 +1416,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   // Reviews
   arenaReviews: Review[] = [];
 
+  // Carrossel de avaliações (step 1)
+  reviewIdx   = 0;
+  private reviewTimer: any = null;
+
   // Review form (step 5)
   reviewStars      = 0;
   reviewHover      = 0;
@@ -1535,6 +1586,31 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPaymentPolling();
+    this.stopReviewCarousel();
+  }
+
+  startReviewCarousel(): void {
+    this.stopReviewCarousel();
+    if (this.arenaReviews.length > 3) {
+      this.reviewTimer = setInterval(() => {
+        this.reviewIdx = (this.reviewIdx + 1) % this.arenaReviews.length;
+      }, 4000);
+    }
+  }
+
+  stopReviewCarousel(): void {
+    if (this.reviewTimer) { clearInterval(this.reviewTimer); this.reviewTimer = null; }
+  }
+
+  setReviewSlide(i: number): void {
+    this.reviewIdx = i;
+    // Reinicia o timer ao navegar manualmente
+    if (this.arenaReviews.length > 3) {
+      this.stopReviewCarousel();
+      this.reviewTimer = setInterval(() => {
+        this.reviewIdx = (this.reviewIdx + 1) % this.arenaReviews.length;
+      }, 4000);
+    }
   }
 
   ngOnInit() {
@@ -1542,7 +1618,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
     // Carrega avaliações do banco
     this.reviewService.getReviews(this.arena.id)
-      .then(reviews => { this.arenaReviews = reviews; })
+      .then(reviews => {
+        this.arenaReviews = reviews;
+        this.startReviewCarousel();
+      })
       .catch(() => { /* mantém vazio em caso de erro */ });
 
     // Busca dados frescos da arena para garantir preços atualizados
