@@ -181,6 +181,223 @@ import { Arena, SportType } from '../../models/models';
       pointer-events: none;
     }
     .arena-card:hover .card-cta { opacity: 0.88; }
+
+    /* ── Filtro unificado ── */
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+    }
+    .filter-btn {
+      position: relative;
+      height: 2.75rem;
+      min-width: 2.75rem;
+      padding: 0 0.95rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--foreground);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.82rem;
+      transition: all 0.15s ease;
+    }
+    .filter-btn:hover { border-color: var(--primary); }
+    .filter-btn.has-active {
+      border-color: var(--primary);
+      background: hsl(152,69%,40%,0.08);
+      color: var(--primary);
+    }
+    .filter-badge {
+      min-width: 1.1rem;
+      height: 1.1rem;
+      padding: 0 0.3rem;
+      border-radius: 999px;
+      background: var(--primary);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .active-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.55rem 0.3rem 0.7rem;
+      border-radius: 999px;
+      background: hsl(152,69%,40%,0.1);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      border: 1px solid hsl(152,69%,40%,0.25);
+    }
+    .pill button {
+      background: none;
+      border: none;
+      padding: 0;
+      display: flex;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0.7;
+    }
+    .pill button:hover { opacity: 1; }
+    .pill.rating {
+      background: hsl(45,93%,47%,0.12);
+      color: #b45309;
+      border-color: hsl(45,93%,47%,0.3);
+    }
+    .pill-clear {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted-foreground);
+      cursor: pointer;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      border-radius: 999px;
+    }
+    .pill-clear:hover { color: var(--foreground); border-color: var(--muted-foreground); }
+
+    /* ── Bottom sheet ── */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(3px);
+      z-index: 50;
+      animation: fade-in 0.18s ease;
+    }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--card);
+      border-radius: 1.25rem 1.25rem 0 0;
+      z-index: 51;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slide-up 0.22s cubic-bezier(0.22,1,0.36,1);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    @media (min-width: 640px) {
+      .sheet {
+        left: 50%;
+        right: auto;
+        bottom: auto;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 440px;
+        border-radius: 1.25rem;
+        animation: fade-in 0.18s ease;
+      }
+    }
+    .sheet-grip {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 999px;
+      margin: 0.6rem auto 0;
+    }
+    @media (min-width: 640px) { .sheet-grip { display: none; } }
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem 0.25rem;
+    }
+    .sheet-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--foreground);
+    }
+    .sheet-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted-foreground);
+      padding: 0.3rem;
+      display: flex;
+      border-radius: 0.5rem;
+    }
+    .sheet-close:hover { background: var(--border); color: var(--foreground); }
+    .sheet-body { padding: 0.5rem 1.25rem 1.25rem; }
+    .sheet-section { margin-top: 1rem; }
+    .sheet-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted-foreground);
+      margin-bottom: 0.6rem;
+    }
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.5rem 0.85rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+      background: var(--background);
+      color: var(--foreground);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .chip:hover { border-color: var(--primary); }
+    .chip.active {
+      border-color: var(--primary);
+      background: hsl(152,69%,40%,0.1);
+      color: var(--primary);
+    }
+    .chip.rating.active {
+      border-color: #f59e0b;
+      background: hsl(45,93%,47%,0.12);
+      color: #b45309;
+    }
+    .sheet-footer {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem 1rem;
+      border-top: 1px solid var(--border);
+      position: sticky;
+      bottom: 0;
+      background: var(--card);
+    }
+    .sheet-footer button { flex: 1; }
+
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
   `],
   template: `
     <div class="mx-auto px-4 pb-24" style="max-width:min(100%,1080px)">
@@ -191,28 +408,45 @@ import { Arena, SportType } from '../../models/models';
         <p class="text-sm" style="color:var(--muted-foreground)">Reserve quadras nas melhores arenas da sua cidade</p>
       </div>
 
-      <!-- Search bar -->
-      <div style="position:relative" class="mb-4">
-        <span class="material-icons" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);font-size:1.15rem;color:var(--muted-foreground);pointer-events:none">search</span>
-        <input class="input" style="padding-left:2.6rem;height:2.75rem;font-size:0.95rem"
-               [(ngModel)]="search" placeholder="Nome da arena...">
-        <button *ngIf="search" (click)="search=''"
-                style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-foreground);padding:0;display:flex">
-          <span class="material-icons" style="font-size:1rem">close</span>
+      <!-- Search + Filtros -->
+      <div class="search-row">
+        <div class="search-wrap">
+          <span class="material-icons" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);font-size:1.15rem;color:var(--muted-foreground);pointer-events:none">search</span>
+          <input class="input" style="padding-left:2.6rem;height:2.75rem;font-size:0.95rem"
+                 [(ngModel)]="search" placeholder="Nome da arena...">
+          <button *ngIf="search" (click)="search=''"
+                  style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-foreground);padding:0;display:flex">
+            <span class="material-icons" style="font-size:1rem">close</span>
+          </button>
+        </div>
+
+        <button class="filter-btn"
+                [class.has-active]="activeFilterCount > 0"
+                (click)="openFilters()"
+                aria-label="Abrir filtros">
+          <span class="material-icons" style="font-size:1.05rem">tune</span>
+          <span class="hidden sm:inline">Filtros</span>
+          <span *ngIf="activeFilterCount > 0" class="filter-badge">{{ activeFilterCount }}</span>
         </button>
       </div>
 
-      <!-- Filtros: esporte -->
-      <div class="flex gap-2 overflow-x-auto pb-1 mb-5" style="-webkit-overflow-scrolling:touch;scrollbar-width:none">
-        <button *ngFor="let s of sports"
-                class="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border"
-                [style.background]="sportFilter === s.value ? 'hsl(152,69%,40%,0.1)' : 'var(--card)'"
-                [style.color]="sportFilter === s.value ? 'var(--primary)' : 'var(--muted-foreground)'"
-                [style.border-color]="sportFilter === s.value ? 'var(--primary)' : 'var(--border)'"
-                (click)="sportFilter = sportFilter === s.value ? '' : s.value">
-          <span class="material-icons" style="font-size:0.85rem">{{ s.icon }}</span>
-          {{ s.label }}
-        </button>
+      <!-- Pills de filtros ativos -->
+      <div *ngIf="activeFilterCount > 0" class="active-pills">
+        <span *ngIf="sportFilter" class="pill">
+          <span class="material-icons" style="font-size:0.85rem">{{ sportIcon(sportFilter) }}</span>
+          {{ sportLabel(sportFilter) }}
+          <button (click)="sportFilter=''" aria-label="Remover filtro esporte">
+            <span class="material-icons" style="font-size:0.95rem">close</span>
+          </button>
+        </span>
+        <span *ngIf="ratingFilter" class="pill rating">
+          <span class="material-icons" style="font-size:0.85rem;color:#f59e0b">star</span>
+          {{ ratingLabel(ratingFilter) }}
+          <button (click)="ratingFilter=0" aria-label="Remover filtro avaliação">
+            <span class="material-icons" style="font-size:0.95rem">close</span>
+          </button>
+        </span>
+        <button class="pill-clear" (click)="clearFilters()">Limpar tudo</button>
       </div>
 
       <!-- Loading -->
@@ -301,6 +535,55 @@ import { Arena, SportType } from '../../models/models';
         </div>
       </div>
 
+      <!-- Bottom sheet de filtros -->
+      <ng-container *ngIf="filtersOpen">
+        <div class="sheet-backdrop" (click)="closeFilters()"></div>
+        <div class="sheet" role="dialog" aria-label="Filtros">
+          <div class="sheet-grip"></div>
+          <div class="sheet-header">
+            <span class="sheet-title">Filtros</span>
+            <button class="sheet-close" (click)="closeFilters()" aria-label="Fechar">
+              <span class="material-icons" style="font-size:1.25rem">close</span>
+            </button>
+          </div>
+
+          <div class="sheet-body">
+            <div class="sheet-section">
+              <div class="sheet-label">Esporte</div>
+              <div class="chip-group">
+                <button *ngFor="let s of sports"
+                        class="chip"
+                        [class.active]="draftSport === s.value"
+                        (click)="draftSport = draftSport === s.value ? '' : s.value">
+                  <span class="material-icons" style="font-size:0.95rem">{{ s.icon }}</span>
+                  {{ s.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="sheet-section">
+              <div class="sheet-label">Avaliação mínima</div>
+              <div class="chip-group">
+                <button *ngFor="let r of ratingOptions"
+                        class="chip rating"
+                        [class.active]="draftRating === r.value"
+                        (click)="draftRating = draftRating === r.value ? 0 : r.value">
+                  <span class="material-icons" style="font-size:0.95rem;color:#f59e0b">star</span>
+                  {{ r.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sheet-footer">
+            <button class="btn-ghost" (click)="resetDraft()">Limpar</button>
+            <button class="btn-primary" (click)="applyFilters()">
+              Aplicar{{ draftCount > 0 ? ' (' + draftCount + ')' : '' }}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
       <!-- Empty state -->
       <div *ngIf="!arenaService.loading() && !arenaService.error() && filtered.length === 0" class="text-center py-16">
         <span class="material-icons mb-3 block" style="font-size:3rem;color:var(--border)">search_off</span>
@@ -317,12 +600,25 @@ export class SearchComponent implements OnInit {
 
   search = '';
   sportFilter = '';
+  ratingFilter = 0;
+
+  // Bottom sheet
+  filtersOpen = false;
+  draftSport = '';
+  draftRating = 0;
 
   sports = [
     { value: 'futevôlei',    label: 'Futevôlei',    icon: 'sports_volleyball' },
     { value: 'vôlei',        label: 'Vôlei',        icon: 'sports_volleyball' },
     { value: 'beach tennis', label: 'Beach Tennis', icon: 'sports_tennis'     },
     { value: 'futebol',      label: 'Futebol',      icon: 'sports_soccer'     },
+  ];
+
+  ratingOptions = [
+    { value: 5,   label: '5,0'  },
+    { value: 4.5, label: '4,5+' },
+    { value: 4,   label: '4,0+' },
+    { value: 3,   label: '3,0+' },
   ];
 
   constructor(public arenaService: ArenaService) {}
@@ -339,7 +635,8 @@ export class SearchComponent implements OnInit {
     return this.arenaService.arenas().filter(a => {
       const matchSearch = !this.search || a.name.toLowerCase().includes(this.search.toLowerCase());
       const matchSport  = !this.sportFilter || a.sports.includes(this.sportFilter as SportType);
-      return matchSearch && matchSport;
+      const matchRating = !this.ratingFilter || (a.rating ?? 0) >= this.ratingFilter;
+      return matchSearch && matchSport && matchRating;
     });
   }
 
@@ -350,5 +647,47 @@ export class SearchComponent implements OnInit {
   clearFilters() {
     this.search = '';
     this.sportFilter = '';
+    this.ratingFilter = 0;
+  }
+
+  get activeFilterCount(): number {
+    return (this.sportFilter ? 1 : 0) + (this.ratingFilter ? 1 : 0);
+  }
+
+  get draftCount(): number {
+    return (this.draftSport ? 1 : 0) + (this.draftRating ? 1 : 0);
+  }
+
+  openFilters() {
+    this.draftSport = this.sportFilter;
+    this.draftRating = this.ratingFilter;
+    this.filtersOpen = true;
+  }
+
+  closeFilters() {
+    this.filtersOpen = false;
+  }
+
+  applyFilters() {
+    this.sportFilter = this.draftSport;
+    this.ratingFilter = this.draftRating;
+    this.filtersOpen = false;
+  }
+
+  resetDraft() {
+    this.draftSport = '';
+    this.draftRating = 0;
+  }
+
+  sportLabel(v: string): string {
+    return this.sports.find(s => s.value === v)?.label ?? v;
+  }
+
+  sportIcon(v: string): string {
+    return this.sports.find(s => s.value === v)?.icon ?? 'sports';
+  }
+
+  ratingLabel(v: number): string {
+    return this.ratingOptions.find(r => r.value === v)?.label ?? (v + '+');
   }
 }
