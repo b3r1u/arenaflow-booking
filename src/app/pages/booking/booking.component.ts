@@ -397,13 +397,13 @@ import { ReviewService } from '../../services/review.service';
 
               <!-- Avaliar arena -->
               <ng-container *ngIf="b.payment_status !== 'cancelado'">
-                <button *ngIf="!isReviewed(b.id)" class="btn-review" (click)="openReviewModal(b)">
+                <button *ngIf="!isReviewed(b)" class="btn-review" (click)="openReviewModal(b)">
                   <span class="material-icons" style="font-size:0.9rem">star_border</span>
                   Avaliar arena
                 </button>
-                <div *ngIf="isReviewed(b.id)" class="reviewed-tag">
+                <div *ngIf="isReviewed(b)" class="reviewed-tag">
                   <span class="material-icons" style="font-size:0.9rem">star</span>
-                  Avaliação enviada — obrigado!
+                  Obrigado por sua avaliação!
                 </div>
               </ng-container>
             </div>
@@ -484,9 +484,7 @@ export class MyBookingsComponent implements OnInit {
   reviewStars   = 0;
   hoverStar     = 0;
   reviewComment = '';
-  private reviewedIds = new Set<string>(
-    JSON.parse(localStorage.getItem('arenaflow_reviewed_bookings') || '[]')
-  );
+  private reviewedArenaIds = new Set<string>();
 
   get starLabel(): string {
     const s = this.hoverStar || this.reviewStars;
@@ -505,6 +503,9 @@ export class MyBookingsComponent implements OnInit {
 
   ngOnInit() {
     this.loadBookings();
+    this.reviewService.getMyReviewedArenaIds()
+      .then(ids => ids.forEach(id => this.reviewedArenaIds.add(id)))
+      .catch(() => {});
   }
 
   async loadBookings(): Promise<void> {
@@ -551,8 +552,8 @@ export class MyBookingsComponent implements OnInit {
     return b.court_name || 'Quadra';
   }
 
-  isReviewed(bookingId: string): boolean {
-    return this.reviewedIds.has(bookingId);
+  isReviewed(b: BookingResult): boolean {
+    return this.reviewedArenaIds.has(b.arena_id);
   }
 
   openReviewModal(b: BookingResult): void {
@@ -584,9 +585,8 @@ export class MyBookingsComponent implements OnInit {
         user_name:        userName,
       });
 
-      // Marca reserva como avaliada (localStorage — só para esconder o botão)
-      this.reviewedIds.add(this.reviewingBooking.id);
-      localStorage.setItem('arenaflow_reviewed_bookings', JSON.stringify([...this.reviewedIds]));
+      // Marca arena como avaliada na memória para atualizar a UI imediatamente
+      this.reviewedArenaIds.add(this.reviewingBooking.arena_id);
 
       this.toast.show('Obrigado pela avaliação! ⭐');
       this.closeReviewModal();
