@@ -484,7 +484,7 @@ export class MyBookingsComponent implements OnInit {
   reviewStars   = 0;
   hoverStar     = 0;
   reviewComment = '';
-  private reviewedArenaIds = new Set<string>();
+  private reviewedBookingIds = new Set<string>();
 
   get starLabel(): string {
     const s = this.hoverStar || this.reviewStars;
@@ -503,8 +503,8 @@ export class MyBookingsComponent implements OnInit {
 
   ngOnInit() {
     this.loadBookings();
-    this.reviewService.getMyReviewedArenaIds()
-      .then(ids => ids.forEach(id => this.reviewedArenaIds.add(id)))
+    this.reviewService.getMyReviewedBookingIds()
+      .then(ids => ids.forEach(id => this.reviewedBookingIds.add(id)))
       .catch(() => {});
   }
 
@@ -553,7 +553,7 @@ export class MyBookingsComponent implements OnInit {
   }
 
   isReviewed(b: BookingResult): boolean {
-    return this.reviewedArenaIds.has(b.arena_id);
+    return this.reviewedBookingIds.has(b.id);
   }
 
   openReviewModal(b: BookingResult): void {
@@ -580,13 +580,14 @@ export class MyBookingsComponent implements OnInit {
 
       await this.reviewService.createReview({
         establishment_id: this.reviewingBooking.arena_id,
+        booking_id:       this.reviewingBooking.id,
         stars:            this.reviewStars,
         comment:          this.reviewComment.trim() || undefined,
         user_name:        userName,
       });
 
-      // Marca arena como avaliada na memória para atualizar a UI imediatamente
-      this.reviewedArenaIds.add(this.reviewingBooking.arena_id);
+      // Marca reserva como avaliada na memória para atualizar a UI imediatamente
+      this.reviewedBookingIds.add(this.reviewingBooking.id);
 
       this.toast.show('Obrigado pela avaliação! ⭐');
       this.closeReviewModal();

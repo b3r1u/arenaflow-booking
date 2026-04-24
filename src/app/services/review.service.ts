@@ -17,6 +17,7 @@ export class ReviewService {
   /** Envia uma avaliação para uma arena (autenticado). */
   async createReview(data: {
     establishment_id: string;
+    booking_id?: string;
     stars: number;
     comment?: string;
     user_name?: string;
@@ -35,11 +36,11 @@ export class ReviewService {
     return res.reviews;
   }
 
-  /** Retorna IDs de arenas que o usuário autenticado já avaliou. */
-  async getMyReviewedArenaIds(): Promise<string[]> {
+  /** Retorna IDs de reservas que o usuário autenticado já avaliou. */
+  async getMyReviewedBookingIds(): Promise<string[]> {
     const res = await firstValueFrom(
-      this.api.get<{ establishment_ids: string[] }>('/reviews/mine')
+      this.api.get<{ booking_ids: string[] }>('/reviews/mine')
     );
-    return res.establishment_ids;
+    return res.booking_ids;
   }
 }
