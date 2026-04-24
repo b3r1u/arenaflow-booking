@@ -8,6 +8,7 @@ import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
 import { BookingService, BookingResult } from '../../services/booking.service';
 import { ArenaService } from '../../services/arena.service';
+import { ReviewService, Review } from '../../services/review.service';
 
 @Component({
   selector: 'app-arena-detail',
@@ -431,6 +432,130 @@ import { ArenaService } from '../../services/arena.service';
       from { transform: scale(0) rotate(-45deg); opacity: 0; }
       to   { transform: scale(1) rotate(0deg);   opacity: 1; }
     }
+
+    /* ── Slot grid ── */
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.45rem;
+    }
+    .slot-btn {
+      padding: 0.55rem 0.2rem;
+      border-radius: 0.65rem;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.14s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
+      color: var(--foreground);
+      font-family: 'Space Grotesk', sans-serif;
+      line-height: 1.2;
+      min-height: 2.6rem;
+      justify-content: center;
+    }
+    .slot-btn.available:hover {
+      border-color: var(--primary);
+      background: hsl(152,69%,40%,0.07);
+      color: var(--primary);
+    }
+    .slot-btn.available-end {
+      border-color: hsl(152,69%,40%,0.4);
+      color: var(--primary);
+      background: hsl(152,69%,40%,0.04);
+    }
+    .slot-btn.available-end:hover {
+      background: hsl(152,69%,40%,0.14);
+      border-color: var(--primary);
+    }
+    .slot-btn.start {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 3px 10px hsl(152,69%,40%,0.4);
+    }
+    .slot-btn.end {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 3px 10px hsl(152,69%,40%,0.4);
+    }
+    .slot-btn.in-range {
+      background: hsl(152,69%,40%,0.13);
+      border-color: hsl(152,69%,40%,0.35);
+      color: var(--primary);
+    }
+    .slot-btn.occupied {
+      background: hsl(0,84%,60%,0.07);
+      border-color: hsl(0,84%,60%,0.22);
+      color: hsl(0,72%,52%);
+      cursor: not-allowed;
+    }
+    .slot-btn.past {
+      opacity: 0.32;
+      cursor: not-allowed;
+      background: var(--muted);
+      border-color: transparent;
+    }
+    .slot-btn.blocked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      background: var(--muted);
+      border-color: transparent;
+    }
+    .slot-label-hint {
+      font-size: 0.52rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      opacity: 0.82;
+      line-height: 1;
+    }
+    .slot-step-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.28rem 0.65rem;
+      border-radius: 2rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .slot-step-hint.picking-start {
+      background: hsl(152,69%,40%,0.1);
+      color: var(--primary);
+    }
+    .slot-step-hint.picking-end {
+      background: hsl(38,92%,50%,0.12);
+      color: hsl(38,92%,35%);
+    }
+    .slot-step-hint.range-done {
+      background: hsl(152,69%,40%,0.12);
+      color: var(--primary);
+    }
+
+    .slot-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.68rem;
+      color: var(--muted-foreground);
+    }
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
   `],
   template: `
     <div>
@@ -550,11 +675,11 @@ import { ArenaService } from '../../services/arena.service';
 
               <!-- Meta -->
               <div class="review-meta">
-                <span class="flex items-center gap-0.5">
-                  <span class="material-icons" style="font-size:0.7rem">verified_user</span>
-                  Cliente verificado
+                <span class="flex items-center gap-0.5 font-semibold truncate" style="max-width:110px">
+                  <span class="material-icons" style="font-size:0.7rem;flex-shrink:0">person</span>
+                  {{ r.user_name }}
                 </span>
-                <span>{{ r.date | date:'dd/MM/yy' }}</span>
+                <span>{{ r.created_at | date:'dd/MM/yy' }}</span>
               </div>
 
             </div>
@@ -640,38 +765,69 @@ import { ArenaService } from '../../services/arena.service';
           <p class="text-xs mb-4" style="color:var(--muted-foreground)">{{ selectedCourt?.name }} · R\${{ selectedCourt?.hourly_rate }}/h</p>
 
           <div class="card p-5 space-y-4 mb-5">
+
+            <!-- Data -->
             <div>
               <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Data</label>
-              <input class="input" type="date" [(ngModel)]="form.date" [min]="todayStr" (ngModelChange)="onSlotChange()">
+              <input class="input" type="date" [(ngModel)]="form.date" [min]="todayStr" (ngModelChange)="onDateChange()">
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Início</label>
-                <select class="select" [(ngModel)]="form.start_hour" (ngModelChange)="onSlotChange()">
-                  <option *ngFor="let h of availableStartHours" [value]="h">{{ h }}</option>
-                </select>
+
+            <!-- Grade de horários -->
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <label class="block text-sm font-semibold" style="color:var(--foreground)">Horário</label>
+                <span class="slot-step-hint"
+                      [ngClass]="(form.start_hour && form.end_hour) ? 'range-done' : (slotStep === 'start' ? 'picking-start' : 'picking-end')">
+                  <span class="material-icons" style="font-size:0.75rem">
+                    {{ (form.start_hour && form.end_hour) ? 'check_circle' : (slotStep === 'start' ? 'play_arrow' : 'stop') }}
+                  </span>
+                  {{ (form.start_hour && form.end_hour) ? 'Alterar seleção' : (slotStep === 'start' ? 'Selecione o início' : 'Selecione o fim') }}
+                </span>
               </div>
-              <div>
-                <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">Fim</label>
-                <select class="select" [(ngModel)]="form.end_hour" (ngModelChange)="onSlotChange()">
-                  <option value="" disabled>Selecione um horário de Fim</option>
-                  <option *ngFor="let h of endHours" [value]="h">{{ h }}</option>
-                </select>
+
+              <div class="slot-grid">
+                <button *ngFor="let h of hours"
+                        class="slot-btn"
+                        [ngClass]="getSlotStatus(h)"
+                        [disabled]="isSlotDisabled(h)"
+                        (click)="onSlotClick(h)">
+                  <span>{{ h }}</span>
+                  <span *ngIf="getSlotStatus(h) === 'occupied'" class="material-icons slot-label-hint" style="font-size:0.7rem">lock</span>
+                  <span *ngIf="getSlotStatus(h) === 'start'"    class="slot-label-hint">início</span>
+                  <span *ngIf="getSlotStatus(h) === 'end'"      class="slot-label-hint">fim</span>
+                </button>
+              </div>
+
+              <!-- Legenda -->
+              <div class="slot-legend">
+                <div class="legend-item">
+                  <div class="legend-swatch" style="background:var(--primary)"></div>
+                  Selecionado
+                </div>
+                <div class="legend-item">
+                  <div class="legend-swatch" style="background:hsl(152,69%,40%,0.13);border:1px solid hsl(152,69%,40%,0.35)"></div>
+                  Intervalo
+                </div>
+                <div class="legend-item">
+                  <div class="legend-swatch" style="background:hsl(0,84%,60%,0.07);border:1px solid hsl(0,84%,60%,0.22)"></div>
+                  Ocupado
+                </div>
+                <div class="legend-item">
+                  <div class="legend-swatch" style="background:var(--muted)"></div>
+                  Indisponível
+                </div>
               </div>
             </div>
 
-            <div *ngIf="slotConflict" class="flex items-center gap-2.5 p-3.5 rounded-xl text-sm font-medium"
-                 style="background:hsl(0,84%,60%,0.08);color:var(--destructive);border:1px solid hsl(0,84%,60%,0.2)">
-              <span class="material-icons" style="font-size:1.1rem">warning</span>
-              Horário já ocupado — escolha outro.
-            </div>
-
-            <div *ngIf="durationHours > 0 && !slotConflict"
+            <div *ngIf="durationHours > 0"
                  class="flex items-center justify-between p-4 rounded-xl"
                  style="background:hsl(152,69%,40%,0.06);border:1px solid hsl(152,69%,40%,0.18)">
-              <span class="text-sm" style="color:var(--muted-foreground)">{{ durationHours }}h × R\${{ selectedCourt?.hourly_rate }}/h</span>
+              <span class="text-sm" style="color:var(--muted-foreground)">
+                {{ form.start_hour }} → {{ form.end_hour }} · {{ durationHours }}h × R\${{ selectedCourt?.hourly_rate }}/h
+              </span>
               <span class="font-heading font-bold text-xl" style="color:var(--primary)">R\${{ form.total_amount }}</span>
             </div>
+
           </div>
 
           <button class="btn-primary w-full py-3" (click)="goToStep3()"
@@ -929,6 +1085,11 @@ import { ArenaService } from '../../services/arena.service';
               </div>
             </div>
 
+            <!-- Avaliar arena -->
+            <button class="btn-primary w-full py-3 mb-3" (click)="goToReview()">
+              <span class="material-icons" style="font-size:1rem">star</span>
+              Avaliar esta arena
+            </button>
             <div class="flex gap-2">
               <button class="btn-outline flex-1" (click)="resetToArena()">
                 <span class="material-icons" style="font-size:1rem">add</span>
@@ -1051,6 +1212,10 @@ import { ArenaService } from '../../services/arena.service';
               </button>
             </div>
 
+            <button class="btn-primary w-full py-3 mb-3" (click)="goToReview()">
+              <span class="material-icons" style="font-size:1rem">star</span>
+              Avaliar esta arena
+            </button>
             <div class="flex gap-2">
               <button class="btn-outline flex-1" (click)="resetToArena()">
                 <span class="material-icons" style="font-size:1rem">add</span>
@@ -1060,6 +1225,117 @@ import { ArenaService } from '../../services/arena.service';
                 <span class="material-icons" style="font-size:1rem">search</span>
                 Outras arenas
               </button>
+            </div>
+          </ng-container>
+
+        </div>
+
+        <!-- ══ STEP 5: Avaliação ══ -->
+        <div *ngIf="step === 5" class="pt-6">
+
+          <ng-container *ngIf="!reviewDone">
+            <div class="text-center mb-6">
+              <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                   style="background:hsl(38,92%,50%,0.12)">
+                <span class="material-icons" style="font-size:2rem;color:hsl(38,92%,50%)">star_rate</span>
+              </div>
+              <h2 class="font-heading font-bold text-2xl mb-1" style="color:var(--foreground)">Avalie sua experiência</h2>
+              <p class="text-sm" style="color:var(--muted-foreground)">Sua opinião ajuda outros jogadores a escolherem</p>
+            </div>
+
+            <div class="card p-5 mb-4">
+              <!-- Nome da arena -->
+              <div class="flex items-center gap-3 mb-5 pb-4" style="border-bottom:1px solid var(--border)">
+                <div class="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center font-heading font-bold text-sm flex-shrink-0"
+                     [style.background]="arena.logo_color">
+                  <img *ngIf="arena.logo_url" [src]="arena.logo_url" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" />
+                  <span *ngIf="!arena.logo_url" style="color:white">{{ arena.logo_initials }}</span>
+                </div>
+                <div>
+                  <div class="font-heading font-semibold text-sm" style="color:var(--foreground)">{{ arena.name }}</div>
+                  <div class="text-xs" style="color:var(--muted-foreground)">{{ arena.neighborhood }} · {{ arena.city }}</div>
+                </div>
+              </div>
+
+              <!-- Estrelas -->
+              <div class="mb-5">
+                <label class="block text-sm font-semibold mb-3 text-center" style="color:var(--foreground)">
+                  {{ reviewStars === 0 ? 'Toque para avaliar' : reviewStarLabel }}
+                </label>
+                <div class="flex justify-center gap-2">
+                  <button *ngFor="let s of [1,2,3,4,5]"
+                          type="button"
+                          (click)="selectStar(s)"
+                          (mouseenter)="reviewHover = s"
+                          (mouseleave)="reviewHover = 0"
+                          class="transition-transform active:scale-125"
+                          style="background:none;border:none;cursor:pointer;padding:0.25rem">
+                    <span class="material-icons"
+                          style="font-size:2.5rem;transition:color 0.12s,transform 0.12s"
+                          [style.color]="s <= (reviewHover || reviewStars) ? 'hsl(38,92%,50%)' : 'var(--border)'"
+                          [style.transform]="s <= (reviewHover || reviewStars) ? 'scale(1.15)' : 'scale(1)'">
+                      star
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Comentário -->
+              <div>
+                <label class="block text-sm font-semibold mb-2" style="color:var(--foreground)">
+                  Comentário <span style="color:var(--muted-foreground);font-weight:400">(opcional)</span>
+                </label>
+                <textarea class="input"
+                          style="min-height:100px;resize:none;padding-top:0.6rem"
+                          [(ngModel)]="reviewComment"
+                          placeholder="Como foi jogar aqui? Conte sua experiência..."
+                          maxlength="500"></textarea>
+                <div class="text-right text-xs mt-1" style="color:var(--muted-foreground)">{{ reviewComment.length }}/500</div>
+              </div>
+            </div>
+
+            <button type="button"
+                    class="btn-primary w-full py-3 mb-2"
+                    [disabled]="reviewStars === 0 || reviewSubmitting"
+                    (click)="submitReview()">
+              <span *ngIf="reviewSubmitting" class="material-icons" style="font-size:1rem;animation:spin 1s linear infinite">refresh</span>
+              <span *ngIf="!reviewSubmitting" class="material-icons" style="font-size:1rem">send</span>
+              {{ reviewSubmitting ? 'Enviando...' : 'Enviar avaliação' }}
+            </button>
+
+            <button type="button" class="btn-ghost w-full py-2 text-sm" (click)="skipReview()">
+              Pular
+            </button>
+          </ng-container>
+
+          <!-- Confirmação após envio -->
+          <ng-container *ngIf="reviewDone">
+            <div class="text-center py-8">
+              <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
+                   style="background:hsl(38,92%,50%,0.12)">
+                <span class="material-icons" style="font-size:3rem;color:hsl(38,92%,50%)">sentiment_very_satisfied</span>
+              </div>
+              <h2 class="font-heading font-bold text-2xl mb-2" style="color:var(--foreground)">Obrigado!</h2>
+              <p class="text-sm mb-6" style="color:var(--muted-foreground)">Sua avaliação foi enviada com sucesso.</p>
+
+              <!-- Mini prévia das estrelas -->
+              <div class="flex justify-center gap-1 mb-6">
+                <span *ngFor="let s of [1,2,3,4,5]"
+                      class="material-icons"
+                      style="font-size:1.5rem"
+                      [style.color]="s <= reviewStars ? 'hsl(38,92%,50%)' : 'var(--border)'">star</span>
+              </div>
+
+              <div class="flex gap-2">
+                <button class="btn-outline flex-1" (click)="resetToArena()">
+                  <span class="material-icons" style="font-size:1rem">add</span>
+                  Nova reserva
+                </button>
+                <button class="btn-outline flex-1" (click)="back.emit()">
+                  <span class="material-icons" style="font-size:1rem">search</span>
+                  Outras arenas
+                </button>
+              </div>
             </div>
           </ng-container>
 
@@ -1083,18 +1359,32 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   paymentConfirmed = false;
   private pollInterval: any = null;
 
+  /** Two-step slot selection: 'start' → pick start hour, 'end' → pick end hour */
+  slotStep: 'start' | 'end' = 'start';
+
   // Split payment tracking
   splitCollectedAmount = 0;
   splitPaidCount = 0;
 
   // Reviews
-  arenaReviews: any[] = [];
+  arenaReviews: Review[] = [];
+
+  // Review form (step 5)
+  reviewStars      = 0;
+  reviewHover      = 0;
+  reviewComment    = '';
+  reviewSubmitting = false;
+  reviewDone       = false;
+
+  get reviewStarLabel(): string {
+    const labels = ['', 'Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente'];
+    return labels[this.reviewStars] || '';
+  }
 
   form = this.emptyForm();
-  private lastDate = this.form.date;
 
-  hours    = Array.from({ length: 17 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
-  get endHours()        { return this.hours.filter(h => parseInt(h) > parseInt(this.form.start_hour)); }
+  hours = Array.from({ length: 17 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
+
   get todayStr()        { return new Date().toISOString().split('T')[0]; }
   get availableCourts() { return this.courts.filter(c => c.status !== 'bloqueada'); }
   get perPlayerAmount() { return this.form.num_players > 1 ? this.form.total_amount / this.form.num_players : this.form.total_amount; }
@@ -1103,14 +1393,139 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   get splitProgressPercent() { return Math.min(100, (this.splitCollectedAmount / (this.confirmedBooking?.total_amount || 1)) * 100); }
   get splitPlayersArray()    { return Array.from({ length: this.confirmedBooking?.num_players || 0 }); }
 
-  get availableStartHours() {
-    if (this.form.date !== this.todayStr) return this.hours;
-    const now = new Date();
-    const currentHour = now.getHours();
-    return this.hours.filter(h => parseInt(h) > currentHour);
+  /** Returns true if the 1-hour block starting at `hour` is in the past (today only) */
+  isHourPast(hour: string): boolean {
+    if (this.form.date !== this.todayStr) return false;
+    return parseInt(hour) <= new Date().getHours();
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService) {}
+  /** Returns true if the 1-hour slot [hour, hour+1] is already booked */
+  isHourOccupied(hour: string): boolean {
+    if (!this.form.court_id) return false;
+    const h = parseInt(hour);
+    if (h >= 23) return false; // no block beyond 23:00
+    const endH = `${(h + 1).toString().padStart(2, '0')}:00`;
+    return this.data.isSlotOccupied(this.arena.id, this.form.court_id, this.form.date, hour, endH);
+  }
+
+  /** First occupied hour strictly after start (used to block invalid end selections) */
+  private get firstOccupiedAfterStart(): string | null {
+    const startIdx = this.hours.indexOf(this.form.start_hour);
+    if (startIdx < 0) return null;
+    for (let i = startIdx + 1; i < this.hours.length; i++) {
+      if (this.isHourOccupied(this.hours[i])) return this.hours[i];
+    }
+    return null;
+  }
+
+  /**
+   * Visual state for each cell in the slot grid.
+   * Possible values: 'past' | 'occupied' | 'available' | 'start' | 'end' | 'in-range' | 'available-end' | 'blocked'
+   */
+  getSlotStatus(hour: string): string {
+    const hInt = parseInt(hour);
+
+    if (this.isHourPast(hour)) return 'past';
+    if (this.isHourOccupied(hour)) return 'occupied';
+
+    const startInt = this.form.start_hour ? parseInt(this.form.start_hour) : -1;
+    const endInt   = this.form.end_hour   ? parseInt(this.form.end_hour)   : -1;
+
+    if (this.slotStep === 'start') {
+      if (hInt >= 23 && !this.form.end_hour) return 'blocked';
+
+      // Seleção completa (início + fim já escolhidos)
+      if (this.form.end_hour) {
+        if (hour === this.form.start_hour)  return 'start';
+        if (hour === this.form.end_hour)    return 'end';
+        if (hInt > startInt && hInt < endInt) return 'in-range';
+        if (hInt > endInt)                  return 'blocked'; // após fim → bloqueado
+        return 'available'; // antes do início → disponível para nova seleção
+      }
+
+      if (hour === this.form.start_hour) return 'start';
+      return 'available';
+    }
+
+    // — Picking end —
+    if (hour === this.form.start_hour) return 'start';
+    if (hInt <= startInt) return 'blocked';
+
+    const firstOcc = this.firstOccupiedAfterStart;
+    if (firstOcc && hInt >= parseInt(firstOcc)) return 'blocked';
+
+    if (hour === this.form.end_hour) return 'end';
+    if (endInt > 0 && hInt > startInt && hInt < endInt) return 'in-range';
+    return 'available-end';
+  }
+
+  /** Whether the button should be disabled (not clickable) */
+  isSlotDisabled(hour: string): boolean {
+    const s = this.getSlotStatus(hour);
+    return s === 'past' || s === 'occupied' || s === 'blocked';
+  }
+
+  /** Handle click on a slot cell */
+  onSlotClick(hour: string): void {
+    if (this.isSlotDisabled(hour)) return;
+
+    if (this.slotStep === 'start') {
+      // Clique no fim → desmarca o fim e volta a escolher fim
+      if (this.form.end_hour && hour === this.form.end_hour) {
+        this.form.end_hour    = '';
+        this.slotStep         = 'end';
+        this.durationHours    = 0;
+        this.form.total_amount = 0;
+        return;
+      }
+      // Clica em qualquer outra hora → começa nova seleção
+      this.form.start_hour  = hour;
+      this.form.end_hour    = '';
+      this.slotStep         = 'end';
+      this.slotConflict     = false;
+      this.durationHours    = 0;
+      this.form.total_amount = 0;
+    } else {
+      if (hour === this.form.start_hour) {
+        // Tap start again → reset selection
+        this.form.start_hour  = '';
+        this.form.end_hour    = '';
+        this.slotStep         = 'start';
+        this.durationHours    = 0;
+        this.form.total_amount = 0;
+        return;
+      }
+      this.form.end_hour = hour;
+      this.slotStep = 'start';
+      this.calcTotal();
+      this.slotConflict = this.form.court_id
+        ? this.data.isSlotOccupied(this.arena.id, this.form.court_id, this.form.date, this.form.start_hour, this.form.end_hour)
+        : false;
+    }
+  }
+
+  /** Reset slot selection when the date changes */
+  onDateChange(): void {
+    this.form.start_hour   = '';
+    this.form.end_hour     = '';
+    this.slotStep          = 'start';
+    this.slotConflict      = false;
+    this.durationHours     = 0;
+    this.form.total_amount = 0;
+    this.fetchAvailability();
+  }
+
+  /** Limpa a seleção de horário (botão × no pill) */
+  resetSlotSelection(): void {
+    this.form.start_hour   = '';
+    this.form.end_hour     = '';
+    this.slotStep          = 'start';
+    this.slotConflict      = false;
+    this.durationHours     = 0;
+    this.form.total_amount = 0;
+  }
+
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService) {}
 
   get arenaAvgRating(): number {
     if (!this.arenaReviews.length) return 0;
@@ -1124,10 +1539,11 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.courts = this.arena.courts ?? [];
-    const all: any[] = JSON.parse(localStorage.getItem('arenaflow_reviews') || '[]');
-    this.arenaReviews = all
-      .filter((r: any) => r.arena_id === this.arena.id)
-      .sort((a: any, b: any) => b.date.localeCompare(a.date));
+
+    // Carrega avaliações do banco
+    this.reviewService.getReviews(this.arena.id)
+      .then(reviews => { this.arenaReviews = reviews; })
+      .catch(() => { /* mantém vazio em caso de erro */ });
 
     // Busca dados frescos da arena para garantir preços atualizados
     this.arenaService.getArenaById(this.arena.id).subscribe({
@@ -1140,15 +1556,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   }
 
   emptyForm() {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const firstAvailable = [7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23].find(h => h > currentHour);
-    const defaultStart = firstAvailable != null
-      ? `${firstAvailable.toString().padStart(2, '0')}:00`
-      : '07:00';
     return {
-      court_id: '', date: now.toISOString().split('T')[0],
-      start_hour: defaultStart, end_hour: '',
+      court_id: '', date: new Date().toISOString().split('T')[0],
+      start_hour: '', end_hour: '',
       client_name: '', client_phone: '', client_document: '',
       num_players: 2, split_payment: false, total_amount: 0,
       payment_option: '50' as '50' | '100'
@@ -1198,40 +1608,26 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   }
 
   selectCourt(court: Court) {
-    this.form.court_id = court.id;
-    this.selectedCourt = court;
-    this.calcTotal();
+    this.form.court_id    = court.id;
+    this.selectedCourt    = court;
+    this.form.start_hour  = '';
+    this.form.end_hour    = '';
+    this.slotStep         = 'start';
+    this.slotConflict     = false;
+    this.durationHours    = 0;
+    this.form.total_amount = 0;
     this.step = 2;
+    this.fetchAvailability();
   }
 
-  onSlotChange() {
-    // Ao mudar a data, recalcula o start_hour conforme a regra da data
-    if (this.form.date !== this.lastDate) {
-      this.lastDate = this.form.date;
-      if (this.form.date === this.todayStr) {
-        const available = this.availableStartHours;
-        this.form.start_hour = available.length > 0 ? available[0] : this.hours[0];
-      } else {
-        this.form.start_hour = this.hours[0]; // data futura: começa em 07:00
-      }
-      this.form.end_hour = '';
-    }
-    // Se for hoje e o início selecionado já passou, corrige
-    const available = this.availableStartHours;
-    if (this.form.date === this.todayStr && available.length > 0 && !available.includes(this.form.start_hour)) {
-      this.form.start_hour = available[0];
-      this.form.end_hour = '';
-    }
-    // Quando o início muda, reseta o fim se não for mais válido
-    if (this.form.end_hour && parseInt(this.form.end_hour) <= parseInt(this.form.start_hour)) {
-      this.form.end_hour = '';
-    }
-    this.calcTotal();
-    if (this.form.court_id && this.form.end_hour) {
-      this.slotConflict = this.data.isSlotOccupied(this.arena.id, this.form.court_id, this.form.date, this.form.start_hour, this.form.end_hour);
-    } else {
-      this.slotConflict = false;
-    }
+  private async fetchAvailability(): Promise<void> {
+    if (!this.form.court_id || !this.form.date) return;
+    try {
+      const slots = await this.bookingService.getAvailability(
+        this.arena.id, this.form.court_id, this.form.date
+      );
+      this.data.loadOccupiedSlots(this.arena.id, this.form.court_id, this.form.date, slots);
+    } catch { /* ignora silenciosamente */ }
   }
 
   calcTotal() {
@@ -1306,13 +1702,67 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  selectStar(n: number): void {
+    this.reviewStars = n;
+    this.reviewHover = 0;
+  }
+
+  goToReview(): void {
+    this.reviewStars      = 0;
+    this.reviewHover      = 0;
+    this.reviewComment    = '';
+    this.reviewDone       = false;
+    this.reviewSubmitting = false;
+    this.step = 5;
+  }
+
+  async submitReview(): Promise<void> {
+    if (this.reviewStars === 0 || this.reviewSubmitting) return;
+    this.reviewSubmitting = true;
+    try {
+      const user    = this.auth.user();
+      const profile = this.userProfile.getProfile();
+      const userName =
+        profile.name ||
+        user?.displayName ||
+        user?.email?.split('@')[0] ||
+        'Anônimo';
+
+      const review = await this.reviewService.createReview({
+        establishment_id: this.arena.id,
+        stars:            this.reviewStars,
+        comment:          this.reviewComment.trim() || undefined,
+        user_name:        userName,
+      });
+
+      this.arenaReviews = [review, ...this.arenaReviews];
+      this.arena = {
+        ...this.arena,
+        reviews_count: this.arenaReviews.length,
+        rating: Math.round(
+          (this.arenaReviews.reduce((s, r) => s + r.stars, 0) / this.arenaReviews.length) * 10
+        ) / 10,
+      };
+      this.reviewDone = true;
+    } catch {
+      this.toast.show('Erro ao enviar avaliação. Tente novamente.');
+    } finally {
+      this.reviewSubmitting = false;
+    }
+  }
+
+  skipReview(): void {
+    this.resetToArena();
+  }
+
   resetToArena() {
     this.form = this.emptyForm();
-    this.selectedCourt = null;
-    this.slotConflict = false;
-    this.durationHours = 0;
-    this.splitPaidCount = 0;
+    this.selectedCourt    = null;
+    this.slotConflict     = false;
+    this.durationHours    = 0;
+    this.splitPaidCount   = 0;
     this.splitCollectedAmount = 0;
+    this.slotStep = 'start';
     this.step = 1;
   }
 

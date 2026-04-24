@@ -5,6 +5,7 @@ import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { BookingService, BookingResult } from '../../services/booking.service';
+import { ReviewService } from '../../services/review.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -497,7 +498,10 @@ export class MyBookingsComponent implements OnInit {
     public auth: AuthService,
     private toast: ToastService,
     private bookingService: BookingService,
+    private reviewService: ReviewService,
   ) {}
+
+  reviewSubmitting = false;
 
   ngOnInit() {
     this.loadBookings();
@@ -562,26 +566,36 @@ export class MyBookingsComponent implements OnInit {
     this.reviewingBooking = null;
   }
 
-  submitReview(): void {
-    if (!this.reviewStars || !this.reviewingBooking) return;
+  async submitReview(): Promise<void> {
+    if (!this.reviewStars || !this.reviewingBooking || this.reviewSubmitting) return;
+    this.reviewSubmitting = true;
 
-    // Persiste avaliação
-    const reviews: any[] = JSON.parse(localStorage.getItem('arenaflow_reviews') || '[]');
-    reviews.push({
-      arena_id:   this.reviewingBooking.arena_id,
-      booking_id: this.reviewingBooking.id,
-      stars:      this.reviewStars,
-      comment:    this.reviewComment.trim(),
-      date:       new Date().toISOString(),
-    });
-    localStorage.setItem('arenaflow_reviews', JSON.stringify(reviews));
+    try {
+      const user    = this.auth.user();
+      const userName =
+        user?.displayName ||
+        user?.email?.split('@')[0] ||
+        'Anônimo';
 
-    // Marca reserva como avaliada
-    this.reviewedIds.add(this.reviewingBooking.id);
-    localStorage.setItem('arenaflow_reviewed_bookings', JSON.stringify([...this.reviewedIds]));
+      await this.reviewService.createReview({
+        establishment_id: this.reviewingBooking.arena_id,
+        stars:            this.reviewStars,
+        comment:          this.reviewComment.trim() || undefined,
+        user_name:        userName,
+      });
 
-    this.toast.show('Obrigado pela avaliação! ⭐');
-    this.closeReviewModal();
+      // Marca reserva como avaliada (localStorage — só para esconder o botão)
+      this.reviewedIds.add(this.reviewingBooking.id);
+      localStorage.setItem('arenaflow_reviewed_bookings', JSON.stringify([...this.reviewedIds]));
+
+      this.toast.show('Obrigado pela avaliação! ⭐');
+      this.closeReviewModal();
+    } catch (err: any) {
+      const msg = err?.error?.error || 'Erro ao enviar avaliação. Tente novamente.';
+      this.toast.show(msg);
+    } finally {
+      this.reviewSubmitting = false;
+    }
   }
 
   openCancelModal(b: BookingResult): void {
