@@ -39,6 +39,25 @@ export interface BookingResult {
   pix_expires_at?: string;
 }
 
+export interface PaymentSplit {
+  id:             string;
+  player_name:    string;
+  amount:         number;        // centavos
+  pix_qr_code:    string | null;
+  pix_copy_paste: string | null;
+  pix_expires_at: string | null;
+  status:         'PENDENTE' | 'PAGO' | 'EXPIRADO';
+}
+
+export interface PaymentGroup {
+  id:           string;
+  payment_type: 'SPLIT' | 'DEPOSIT';
+  total_amount: number;  // centavos
+  paid_amount:  number;  // centavos
+  status:       'PENDENTE' | 'PARCIAL' | 'PAGO';
+  splits:       PaymentSplit[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class BookingService {
   constructor(
@@ -72,6 +91,34 @@ export class BookingService {
     await firstValueFrom(
       this.api.post<any>(`/bookings/${id}/simulate-payment`, {})
     );
+  }
+
+  async createPaymentGroup(bookingId: string, dto: {
+    payment_type: 'SPLIT' | 'DEPOSIT';
+    players?: { name: string; email?: string; document?: string }[];
+    player_name?: string;
+    player_email?: string;
+    player_document?: string;
+  }): Promise<PaymentGroup> {
+    const res = await firstValueFrom(
+      this.api.post<{ group: PaymentGroup }>(`/bookings/${bookingId}/payment-group`, dto)
+    );
+    return res.group;
+  }
+
+  async getPaymentGroup(bookingId: string): Promise<PaymentGroup> {
+    const res = await firstValueFrom(
+      this.api.get<{ group: PaymentGroup }>(`/bookings/${bookingId}/payment-group`)
+    );
+    return res.group;
+  }
+
+  /** Versão silenciosa (sem loader global) para polling de status de pagamento. */
+  async getPaymentGroupSilent(bookingId: string): Promise<PaymentGroup> {
+    const res = await firstValueFrom(
+      this.api.getSilent<{ group: PaymentGroup }>(`/bookings/${bookingId}/payment-group`)
+    );
+    return res.group;
   }
 
   async getAvailability(arenaId: string, courtId: string, date: string): Promise<{ start_hour: string; end_hour: string }[]> {

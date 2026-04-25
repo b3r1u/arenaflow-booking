@@ -6,6 +6,7 @@ import { ArenaDetailComponent } from './pages/arena-detail/arena-detail.componen
 import { MyBookingsComponent } from './pages/booking/booking.component';
 import { UserProfileComponent } from './pages/user-profile/user-profile.component';
 import { LoginComponent } from './pages/login/login.component';
+import { PublicBookingComponent } from './pages/public-booking/public-booking.component';
 import { ToastService } from './services/toast.service';
 import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
@@ -18,9 +19,14 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, UserProfileComponent, LoginComponent],
+  imports: [CommonModule, FormsModule, SearchComponent, ArenaDetailComponent, MyBookingsComponent, UserProfileComponent, LoginComponent, PublicBookingComponent],
   template: `
     <div style="background-color:var(--background);min-height:100vh">
+
+      <!-- Página pública de reserva — sem autenticação -->
+      <app-public-booking *ngIf="publicBookingId" [bookingId]="publicBookingId"></app-public-booking>
+
+      <ng-container *ngIf="!publicBookingId">
 
       <!-- Loading auth state -->
       <div *ngIf="auth.loading()" class="min-h-screen flex items-center justify-center"
@@ -258,6 +264,8 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
         <!-- Toast -->
         <div *ngIf="toastMsg" class="toast" style="bottom:5rem">{{ toastMsg }}</div>
       </ng-container>
+
+      </ng-container> <!-- /!publicBookingId -->
     </div>
 
     <style>
@@ -338,6 +346,9 @@ export class AppComponent implements OnInit {
   savingProfile   = false;
   profileForm     = { cpf: '', phone: '' };
 
+  /** ID da reserva quando a URL é /reserva/:id (página pública) */
+  publicBookingId: string | null = null;
+
   constructor(
     public theme: ThemeService,
     public auth: AuthService,
@@ -347,6 +358,13 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    // Detecta /reserva/:id — página pública sem autenticação
+    const match = window.location.pathname.match(/^\/reserva\/([^/]+)/);
+    if (match) {
+      this.publicBookingId = match[1];
+      return; // não inicializa o resto do app
+    }
+
     this.toast.message$.subscribe(m => this.toastMsg = m);
 
     // Exibe card quando o perfil carrega incompleto (sem CPF ou sem celular)
