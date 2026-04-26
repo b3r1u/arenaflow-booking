@@ -1172,16 +1172,25 @@ import { ReviewService, Review } from '../../services/review.service';
           <!-- ── Fluxo split payment ── -->
           <ng-container *ngIf="confirmedBooking?.split_payment && paymentGroup">
 
-            <!-- Cabeçalho -->
-            <div class="text-center mb-5">
-              <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
-                   style="background:hsl(152,69%,40%,0.12)">
-                <span class="material-icons" style="font-size:2rem;color:var(--primary)">group</span>
+            <!-- Banner de status da reserva -->
+            <div class="rounded-2xl p-4 mb-4 flex items-center gap-3 transition-all duration-500"
+                 [style.background]="bookingStatusBg"
+                 [style.border]="'1.5px solid ' + bookingStatusBorder">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                   [style.background]="bookingStatusIconBg">
+                <span class="material-icons" [style.color]="bookingStatusColor" style="font-size:1.3rem">
+                  {{ bookingStatusIcon }}
+                </span>
               </div>
-              <h2 class="font-heading font-bold text-xl mb-1" style="color:var(--foreground)">Cotas geradas!</h2>
-              <p class="text-sm" style="color:var(--muted-foreground)">
-                Cada jogador tem seu próprio QR Code PIX
-              </p>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-sm" [style.color]="bookingStatusColor">{{ bookingStatusTitle }}</div>
+                <div class="text-xs mt-0.5" style="color:var(--muted-foreground)">{{ bookingStatusDesc }}</div>
+              </div>
+              <span class="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0"
+                    [style.background]="bookingStatusIconBg"
+                    [style.color]="bookingStatusColor">
+                {{ bookingStatusLabel }}
+              </span>
             </div>
 
             <!-- Progresso geral -->
@@ -1192,13 +1201,24 @@ import { ReviewService, Review } from '../../services/review.service';
                   {{ splitPaidCount }} de {{ paymentGroup.splits.length }} pagaram
                 </span>
               </div>
-              <div class="rounded-full overflow-hidden mb-2" style="height:8px;background:var(--muted)">
+              <!-- Barra com marcador de 50% -->
+              <div class="relative rounded-full overflow-visible mb-3" style="height:8px;background:var(--muted)">
                 <div class="h-full rounded-full transition-all duration-500"
-                     style="background:var(--primary)"
+                     [style.background]="splitProgressPercent >= 100 ? 'var(--primary)' : splitProgressPercent >= 50 ? 'hsl(152,69%,40%)' : 'hsl(45,93%,47%)'"
                      [style.width.%]="splitProgressPercent"></div>
+                <!-- Marcador de 50% -->
+                <div class="absolute top-1/2 -translate-y-1/2 flex flex-col items-center"
+                     style="left:50%;transform:translate(-50%,-50%)">
+                  <div class="w-0.5 h-3 rounded-full"
+                       [style.background]="splitProgressPercent >= 50 ? 'var(--primary)' : 'var(--muted-foreground)'"
+                       style="margin-top:-2px"></div>
+                </div>
               </div>
               <div class="flex justify-between text-xs">
                 <span style="color:var(--muted-foreground)">R\${{ splitPaidAmountCents / 100 | number:'1.2-2' }} pagos</span>
+                <span class="font-semibold" [style.color]="splitProgressPercent >= 50 ? 'var(--primary)' : 'hsl(45,93%,47%)'">
+                  50% = quadra garantida
+                </span>
                 <span style="color:var(--muted-foreground)">R\${{ splitTotalCents / 100 | number:'1.2-2' }} total</span>
               </div>
             </div>
@@ -1709,6 +1729,82 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   get splitPaidCount(): number {
     return this.paymentGroup?.splits.filter(s => s.status === 'PAGO').length ?? 0;
+  }
+
+  private get bookingStatus(): string {
+    return this.confirmedBooking?.payment_status?.toUpperCase() ?? 'PENDENTE';
+  }
+
+  get bookingStatusTitle(): string {
+    const map: Record<string, string> = {
+      PAGO:      'Reserva totalmente paga!',
+      PARCIAL:   'Quadra confirmada!',
+      PENDENTE:  'Aguardando pagamentos',
+    };
+    return map[this.bookingStatus] ?? 'Aguardando pagamentos';
+  }
+
+  get bookingStatusDesc(): string {
+    const map: Record<string, string> = {
+      PAGO:     'Todos pagaram. Até a quadra! 🎉',
+      PARCIAL:  'Mais de 50% pago. A quadra está garantida.',
+      PENDENTE: 'A quadra será confirmada ao atingir 50% do valor.',
+    };
+    return map[this.bookingStatus] ?? 'A quadra será confirmada ao atingir 50% do valor.';
+  }
+
+  get bookingStatusLabel(): string {
+    const map: Record<string, string> = {
+      PAGO:     'Pago ✓',
+      PARCIAL:  'Confirmado ✓',
+      PENDENTE: 'Pendente',
+    };
+    return map[this.bookingStatus] ?? 'Pendente';
+  }
+
+  get bookingStatusIcon(): string {
+    const map: Record<string, string> = {
+      PAGO:     'verified',
+      PARCIAL:  'check_circle',
+      PENDENTE: 'schedule',
+    };
+    return map[this.bookingStatus] ?? 'schedule';
+  }
+
+  get bookingStatusColor(): string {
+    const map: Record<string, string> = {
+      PAGO:     'var(--primary)',
+      PARCIAL:  'var(--primary)',
+      PENDENTE: 'hsl(45,93%,47%)',
+    };
+    return map[this.bookingStatus] ?? 'hsl(45,93%,47%)';
+  }
+
+  get bookingStatusBg(): string {
+    const map: Record<string, string> = {
+      PAGO:     'hsl(152,69%,40%,0.08)',
+      PARCIAL:  'hsl(152,69%,40%,0.08)',
+      PENDENTE: 'hsl(45,93%,47%,0.08)',
+    };
+    return map[this.bookingStatus] ?? 'hsl(45,93%,47%,0.08)';
+  }
+
+  get bookingStatusBorder(): string {
+    const map: Record<string, string> = {
+      PAGO:     'var(--primary)',
+      PARCIAL:  'var(--primary)',
+      PENDENTE: 'hsl(45,93%,47%)',
+    };
+    return map[this.bookingStatus] ?? 'hsl(45,93%,47%)';
+  }
+
+  get bookingStatusIconBg(): string {
+    const map: Record<string, string> = {
+      PAGO:     'hsl(152,69%,40%,0.15)',
+      PARCIAL:  'hsl(152,69%,40%,0.15)',
+      PENDENTE: 'hsl(45,93%,47%,0.15)',
+    };
+    return map[this.bookingStatus] ?? 'hsl(45,93%,47%,0.15)';
   }
 
   goToStep3() {
