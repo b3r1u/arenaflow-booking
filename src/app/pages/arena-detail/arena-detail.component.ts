@@ -6,7 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
-import { BookingService, BookingResult, PaymentGroup } from '../../services/booking.service';
+import { BookingService, BookingResult, PaymentGroup, PaymentSplit } from '../../services/booking.service';
 import { ArenaService } from '../../services/arena.service';
 import { ReviewService, Review } from '../../services/review.service';
 
@@ -1889,10 +1889,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   /** Regenera o QR Code de uma cota expirada. */
   async regenerateSplitQr(split: PaymentSplit): Promise<void> {
     if (!this.confirmedBooking) return;
-    (split as any)['regenerating'] = true;
+    split.regenerating = true;
     try {
       const updated = await this.bookingService.regenerateSplit(this.confirmedBooking.id, split.id);
-      // Atualiza a cota no paymentGroup em memória
       if (this.paymentGroup) {
         this.paymentGroup = {
           ...this.paymentGroup,
@@ -1903,7 +1902,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     } catch {
       this.toast.show('Erro ao gerar QR Code. Tente novamente.');
     } finally {
-      (split as any)['regenerating'] = false;
+      split.regenerating = false;
     }
   }
 

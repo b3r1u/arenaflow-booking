@@ -47,6 +47,7 @@ export interface PaymentSplit {
   pix_copy_paste: string | null;
   pix_expires_at: string | null;
   status:         'PENDENTE' | 'PAGO' | 'EXPIRADO';
+  regenerating?:  boolean;       // estado local de loading ao regenerar QR
 }
 
 export interface PaymentGroup {
