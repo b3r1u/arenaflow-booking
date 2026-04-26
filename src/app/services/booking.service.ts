@@ -113,6 +113,13 @@ export class BookingService {
     return res.group;
   }
 
+  async regenerateSplit(bookingId: string, splitId: string): Promise<PaymentSplit> {
+    const res = await firstValueFrom(
+      this.api.post<{ split: PaymentSplit }>(`/bookings/${bookingId}/splits/${splitId}/regenerate`, {})
+    );
+    return res.split;
+  }
+
   /** Versão silenciosa (sem loader global) para polling de status de pagamento. */
   async getPaymentGroupSilent(bookingId: string): Promise<PaymentGroup> {
     const res = await firstValueFrom(

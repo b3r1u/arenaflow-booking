@@ -1213,20 +1213,33 @@ import { ReviewService, Review } from '../../services/review.service';
                 <!-- Cabeçalho da cota -->
                 <div class="flex items-center gap-2 mb-3">
                   <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
-                       [style.background]="split.status === 'PAGO' ? 'var(--primary)' : 'var(--muted)'"
-                       [style.color]="split.status === 'PAGO' ? 'white' : 'var(--muted-foreground)'">
-                    <span class="material-icons" style="font-size:1rem">{{ split.status === 'PAGO' ? 'check' : 'person' }}</span>
+                       [style.background]="split.status === 'PAGO' ? 'var(--primary)' : isSplitExpired(split) ? 'hsl(0,72%,51%,0.15)' : 'var(--muted)'"
+                       [style.color]="split.status === 'PAGO' ? 'white' : isSplitExpired(split) ? '#dc2626' : 'var(--muted-foreground)'">
+                    <span class="material-icons" style="font-size:1rem">{{ split.status === 'PAGO' ? 'check' : isSplitExpired(split) ? 'timer_off' : 'person' }}</span>
                   </div>
                   <span class="font-semibold text-sm flex-1" style="color:var(--foreground)">{{ split.player_name }}</span>
                   <span class="text-xs font-bold px-2 py-0.5 rounded-full"
-                        [style.background]="split.status === 'PAGO' ? 'hsl(152,69%,40%,0.12)' : 'var(--muted)'"
-                        [style.color]="split.status === 'PAGO' ? 'var(--primary)' : 'var(--muted-foreground)'">
-                    {{ split.status === 'PAGO' ? 'Pago ✓' : 'Pendente' }}
+                        [style.background]="split.status === 'PAGO' ? 'hsl(152,69%,40%,0.12)' : isSplitExpired(split) ? 'hsl(0,72%,51%,0.1)' : 'var(--muted)'"
+                        [style.color]="split.status === 'PAGO' ? 'var(--primary)' : isSplitExpired(split) ? '#dc2626' : 'var(--muted-foreground)'">
+                    {{ split.status === 'PAGO' ? 'Pago ✓' : isSplitExpired(split) ? 'Expirado' : 'Pendente' }}
                   </span>
                 </div>
 
-                <!-- QR Code (apenas se pendente) -->
-                <ng-container *ngIf="split.status !== 'PAGO'">
+                <!-- Expirado: botão de regenerar -->
+                <div *ngIf="isSplitExpired(split)" class="text-center py-3">
+                  <span class="material-icons mb-2 block" style="font-size:2rem;color:#dc2626">timer_off</span>
+                  <div class="text-sm font-semibold mb-1" style="color:#dc2626">QR Code expirado</div>
+                  <div class="text-xs mb-3" style="color:var(--muted-foreground)">R\${{ split.amount / 100 | number:'1.2-2' }}</div>
+                  <button class="btn-primary text-sm px-4 py-2"
+                          [disabled]="split['regenerating']"
+                          (click)="regenerateSplitQr(split)">
+                    <span class="material-icons" style="font-size:0.9rem">refresh</span>
+                    {{ split['regenerating'] ? 'Gerando...' : 'Gerar novo QR Code' }}
+                  </button>
+                </div>
+
+                <!-- QR Code (apenas se pendente e não expirado) -->
+                <ng-container *ngIf="split.status !== 'PAGO' && !isSplitExpired(split)">
                   <div class="w-36 h-36 rounded-xl mx-auto mb-3 overflow-hidden flex items-center justify-center"
                        style="background:var(--muted)">
                     <img *ngIf="split.pix_qr_code"
@@ -1864,6 +1877,34 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         }
       } catch { /* ignora */ }
     }, 5000);
+  }
+
+  /** Retorna true se o PIX da cota já expirou e ainda está pendente. */
+  isSplitExpired(split: PaymentSplit): boolean {
+    if (split.status === 'PAGO') return false;
+    if (!split.pix_expires_at) return false;
+    return new Date(split.pix_expires_at) < new Date();
+  }
+
+  /** Regenera o QR Code de uma cota expirada. */
+  async regenerateSplitQr(split: PaymentSplit): Promise<void> {
+    if (!this.confirmedBooking) return;
+    (split as any)['regenerating'] = true;
+    try {
+      const updated = await this.bookingService.regenerateSplit(this.confirmedBooking.id, split.id);
+      // Atualiza a cota no paymentGroup em memória
+      if (this.paymentGroup) {
+        this.paymentGroup = {
+          ...this.paymentGroup,
+          splits: this.paymentGroup.splits.map(s => s.id === updated.id ? { ...s, ...updated } : s),
+        };
+      }
+      this.toast.show('Novo QR Code gerado!');
+    } catch {
+      this.toast.show('Erro ao gerar QR Code. Tente novamente.');
+    } finally {
+      (split as any)['regenerating'] = false;
+    }
   }
 
   /** Compara estados antes/depois e exibe toast para cada cota recém-paga. */
