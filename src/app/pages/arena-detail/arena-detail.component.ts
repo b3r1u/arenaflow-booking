@@ -6,7 +6,7 @@ import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { UserProfileService } from '../../services/user-profile.service';
 import { Arena, Booking, Court } from '../../models/models';
-import { BookingService, BookingResult, PaymentGroup, PaymentSplit } from '../../services/booking.service';
+import { BookingService, BookingResult, PaymentGroup, PaymentSplit, CancelPreview } from '../../services/booking.service';
 import { ArenaService } from '../../services/arena.service';
 import { ReviewService, Review } from '../../services/review.service';
 
@@ -587,6 +587,66 @@ import { ReviewService, Review } from '../../services/review.service';
       border-radius: 3px;
       flex-shrink: 0;
     }
+
+    /* ── Cancel button ── */
+    .btn-cancel-booking {
+      width: 100%;
+      padding: 0.65rem;
+      border-radius: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: var(--font-heading, inherit);
+      border: 1.5px solid hsl(0,72%,51%,0.4);
+      background: transparent;
+      color: hsl(0,72%,51%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: background 0.15s;
+      margin-top: 0.75rem;
+    }
+    .btn-cancel-booking:hover   { background: hsl(0,72%,51%,0.06); }
+    .btn-cancel-booking:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Cancel modal ── */
+    .cancel-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      animation: fadeInModal 0.15s ease;
+    }
+    .cancel-modal-sheet {
+      background: var(--card);
+      border-radius: 1.25rem;
+      padding: 1.75rem 1.5rem;
+      width: 100%; max-width: 420px;
+      animation: scaleInModal 0.18s ease;
+    }
+    @keyframes fadeInModal  { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes scaleInModal { from { transform: scale(0.94); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+    .btn-confirm-cancel {
+      width: 100%; padding: 0.75rem; border-radius: 0.75rem;
+      font-weight: 700; font-size: 0.9rem;
+      font-family: var(--font-heading, inherit);
+      border: none; background: hsl(0,72%,51%); color: white;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-confirm-cancel:hover    { opacity: 0.88; }
+    .btn-confirm-cancel:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-back-modal {
+      width: 100%; padding: 0.65rem; border-radius: 0.75rem;
+      font-weight: 600; font-size: 0.85rem;
+      font-family: var(--font-heading, inherit);
+      border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted-foreground);
+      cursor: pointer; transition: background 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-back-modal:hover { background: var(--muted); }
   `],
   template: `
     <div>
@@ -1152,8 +1212,20 @@ import { ReviewService, Review } from '../../services/review.service';
               </div>
             </div>
 
+            <!-- Cancelar reserva (apenas antes do pagamento ser confirmado) -->
+            <button *ngIf="!paymentConfirmed"
+                    class="btn-cancel-booking"
+                    [disabled]="cancelInfoLoading || cancelling"
+                    (click)="openCancelFlow()">
+              <span class="material-icons" style="font-size:0.9rem"
+                    [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
+                {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
+              </span>
+              {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
+            </button>
+
             <!-- Avaliar arena -->
-            <button class="btn-primary w-full py-3 mb-3" (click)="goToReview()">
+            <button class="btn-primary w-full py-3 mb-3" [class.mt-3]="!paymentConfirmed" (click)="goToReview()">
               <span class="material-icons" style="font-size:1rem">star</span>
               Avaliar esta arena
             </button>
@@ -1306,6 +1378,18 @@ import { ReviewService, Review } from '../../services/review.service';
               Envie para os jogadores acessarem e pagarem a própria cota
             </p>
 
+            <!-- Cancelar reserva (split — apenas antes de estar completamente pago) -->
+            <button *ngIf="!paymentConfirmed"
+                    class="btn-cancel-booking mb-3"
+                    [disabled]="cancelInfoLoading || cancelling"
+                    (click)="openCancelFlow()">
+              <span class="material-icons" style="font-size:0.9rem"
+                    [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
+                {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
+              </span>
+              {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
+            </button>
+
             <div class="flex gap-2">
               <button class="btn-outline flex-1" (click)="resetToArena()">
                 <span class="material-icons" style="font-size:1rem">add</span>
@@ -1318,6 +1402,63 @@ import { ReviewService, Review } from '../../services/review.service';
             </div>
           </ng-container>
 
+        </div>
+
+        <!-- ══ Modal de cancelamento ══ -->
+        <div *ngIf="showCancelModal" class="cancel-modal-overlay" (click)="showCancelModal = false">
+          <div class="cancel-modal-sheet" (click)="$event.stopPropagation()">
+
+            <!-- Ícone -->
+            <div class="flex justify-center mb-4">
+              <div class="w-14 h-14 rounded-full flex items-center justify-center"
+                   style="background:hsl(0,72%,51%,0.1)">
+                <span class="material-icons" style="font-size:1.6rem;color:hsl(0,72%,51%)">cancel</span>
+              </div>
+            </div>
+
+            <h3 class="font-heading font-bold text-lg text-center mb-1" style="color:var(--foreground)">
+              Cancelar reserva?
+            </h3>
+            <p class="text-sm text-center mb-4" style="color:var(--muted-foreground)">
+              Reserva em <strong style="color:var(--foreground)">{{ arena.name }}</strong>
+              no dia <strong style="color:var(--foreground)">{{ confirmedBooking?.date | date:'dd/MM/yyyy':'UTC' }}</strong>
+              às <strong style="color:var(--foreground)">{{ confirmedBooking?.start_hour }}</strong>.
+            </p>
+
+            <!-- Sem taxa -->
+            <div *ngIf="!cancelInfo?.requires_fee"
+                 class="rounded-xl p-3 mb-5 flex gap-2 items-start"
+                 style="background:hsl(152,69%,40%,0.08);border:1px solid hsl(152,69%,40%,0.2)">
+              <span class="material-icons flex-shrink-0" style="font-size:1rem;color:var(--primary);margin-top:1px">check_circle</span>
+              <p class="text-xs leading-relaxed" style="color:var(--primary)">
+                Cancelamento <strong>sem taxa</strong> — dentro do prazo gratuito.
+                O valor pago será reembolsado integralmente.
+              </p>
+            </div>
+
+            <!-- Com taxa -->
+            <div *ngIf="cancelInfo?.requires_fee"
+                 class="rounded-xl p-3 mb-5 flex gap-2 items-start"
+                 style="background:hsl(0,84%,60%,0.08);border:1px solid hsl(0,84%,60%,0.25)">
+              <span class="material-icons flex-shrink-0" style="font-size:1rem;color:hsl(0,72%,51%);margin-top:1px">warning</span>
+              <p class="text-xs leading-relaxed" style="color:hsl(0,72%,40%)">
+                Fora do prazo de cancelamento gratuito. Multa: <strong>R\${{ cancelInfo?.fee_amount | number:'1.2-2' }}</strong>.
+                Reembolso: <strong>R\${{ cancelInfo?.refund_amount | number:'1.2-2' }}</strong>.
+              </p>
+            </div>
+
+            <button class="btn-confirm-cancel"
+                    [disabled]="cancelling"
+                    (click)="confirmCancelBooking()">
+              <span *ngIf="cancelling" class="material-icons"
+                    style="font-size:1rem;vertical-align:middle;margin-right:0.3rem;animation:spin 1s linear infinite">
+                refresh
+              </span>
+              {{ cancelling ? 'Cancelando...' : 'Sim, cancelar reserva' }}
+            </button>
+            <button class="btn-back-modal" (click)="showCancelModal = false">Voltar</button>
+
+          </div>
         </div>
 
         <!-- ══ STEP 5: Avaliação ══ -->
@@ -1455,6 +1596,12 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   // Split payment tracking
   splitCollectedAmount = 0;
   paymentGroup: PaymentGroup | null = null;
+
+  // Cancel flow
+  cancelInfo:        CancelPreview | null = null;
+  cancelInfoLoading  = false;
+  showCancelModal    = false;
+  cancelling         = false;
 
   // Reviews
   arenaReviews: Review[] = [];
@@ -1901,6 +2048,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
       this.confirmedBooking = booking;
       this.paymentConfirmed = false;
+      this.cancelInfo       = null; // reseta preview anterior
+
+      // Carrega política de cancelamento em background (sem bloquear o fluxo)
+      this.loadCancelPreview();
 
       // 2. Se split, cria o grupo de pagamento com os nomes dos jogadores
       if (this.form.split_payment && this.form.payment_option === '100') {
@@ -1970,6 +2121,12 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
           this.paymentConfirmed = true;
           this.stopPaymentPolling();
           this.toast.show('Pagamento confirmado! Reserva garantida ✅');
+        } else {
+          // Atualiza o preview de cancelamento para refletir se a janela gratuita já expirou.
+          // Feito silenciosamente dentro do mesmo ciclo de polling (sem estado de loading).
+          try {
+            this.cancelInfo = await this.bookingService.getCancelPreview(bookingId);
+          } catch { /* mantém o cancelInfo atual em caso de erro */ }
         }
       } catch { /* ignora */ }
     }, 5000);
@@ -2079,6 +2236,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     this.durationHours    = 0;
     this.splitCollectedAmount = 0;
     this.paymentGroup         = null;
+    this.cancelInfo           = null;
+    this.showCancelModal      = false;
+    this.cancelling           = false;
     this.slotStep = 'start';
     this.step = 1;
   }
@@ -2090,6 +2250,63 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     } else {
       navigator.clipboard.writeText(link);
       this.toast.show('Link copiado! Compartilhe com os jogadores.');
+    }
+  }
+
+  /* ── Cancel flow ─────────────────────────────────────────────────── */
+
+  /** Carrega o preview de cancelamento em background após o booking ser criado. */
+  private async loadCancelPreview(): Promise<void> {
+    if (!this.confirmedBooking) return;
+    this.cancelInfoLoading = true;
+    try {
+      this.cancelInfo = await this.bookingService.getCancelPreview(this.confirmedBooking.id);
+    } catch { /* silencioso — botão aparece como "Cancelar reserva" por padrão */ }
+    finally { this.cancelInfoLoading = false; }
+  }
+
+  /** Abre o fluxo de cancelamento: mostra toast informativo (se houver taxa) e exibe o modal. */
+  async openCancelFlow(): Promise<void> {
+    if (!this.confirmedBooking || this.cancelling) return;
+
+    // Carrega preview se ainda não tiver (fallback para o caso do load silencioso ter falhado)
+    if (!this.cancelInfo) {
+      this.cancelInfoLoading = true;
+      try {
+        this.cancelInfo = await this.bookingService.getCancelPreview(this.confirmedBooking.id);
+      } catch {
+        this.toast.show('Não foi possível verificar a política de cancelamento. Tente novamente.');
+        this.cancelInfoLoading = false;
+        return;
+      }
+      this.cancelInfoLoading = false;
+    }
+
+    // Toast informativo apenas quando há taxa
+    if (this.cancelInfo.requires_fee) {
+      const fee     = this.cancelInfo.fee_amount.toFixed(2).replace('.', ',');
+      const refund  = this.cancelInfo.refund_amount.toFixed(2).replace('.', ',');
+      this.toast.show(
+        `Atenção: cancelamento fora do prazo da unidade. Taxa de cancelamento: R$${fee}. Reembolso: R$${refund}.`
+      );
+    }
+
+    this.showCancelModal = true;
+  }
+
+  /** Confirma e executa o cancelamento via API. */
+  async confirmCancelBooking(): Promise<void> {
+    if (!this.confirmedBooking || this.cancelling) return;
+    this.cancelling = true;
+    try {
+      await this.bookingService.cancelBooking(this.confirmedBooking.id);
+      this.showCancelModal = false;
+      this.toast.show('Reserva cancelada com sucesso.');
+      setTimeout(() => this.resetToArena(), 400);
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao cancelar. Tente novamente.');
+    } finally {
+      this.cancelling = false;
     }
   }
 

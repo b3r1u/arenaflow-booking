@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
-import { BookingService, BookingResult } from '../../services/booking.service';
+import { BookingService, BookingResult, CancelPreview, PaymentGroup } from '../../services/booking.service';
 import { ReviewService } from '../../services/review.service';
 
 @Component({
@@ -168,6 +168,9 @@ import { ReviewService } from '../../services/review.service';
       margin-top: 0.5rem;
     }
     .btn-back:hover { background: var(--muted); }
+    .btn-back:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-confirm-cancel:disabled { opacity: 0.55; cursor: not-allowed; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `],
   template: `
     <div class="max-w-lg mx-auto px-4 pb-24 pt-4">
@@ -267,24 +270,35 @@ import { ReviewService } from '../../services/review.service';
                 </ng-container>
               </div>
 
-              <!-- Ação -->
-              <button *ngIf="b.payment_status === 'parcial'"
+              <!-- Ação PIX -->
+              <button *ngIf="b.payment_status === 'parcial' && !b.split_payment"
                       class="btn-primary w-full mt-3 py-2.5 text-sm">
                 <span class="material-icons" style="font-size:0.9rem">pix</span>
                 Pagar saldo restante via PIX
               </button>
-              <button *ngIf="b.payment_status === 'pendente'"
+              <button *ngIf="b.payment_status === 'pendente' && !b.split_payment"
                       class="btn-primary w-full mt-3 py-2.5 text-sm">
                 <span class="material-icons" style="font-size:0.9rem">pix</span>
                 Pagar agora via PIX
               </button>
 
-              <!-- Cancelar — disponível para pago e parcial -->
-              <button *ngIf="b.payment_status === 'parcial' || b.payment_status === 'pago'"
-                      class="btn-cancel"
+              <!-- Acompanhar cotas (split payment) -->
+              <button *ngIf="b.split_payment"
+                      class="btn-primary w-full mt-3 py-2.5 text-sm"
+                      (click)="openPaymentDetail(b)">
+                <span class="material-icons" style="font-size:0.9rem">group</span>
+                Acompanhar cotas dos jogadores
+              </button>
+
+              <!-- Cancelar — disponível para todos os status em andamento -->
+              <button class="btn-cancel"
+                      [disabled]="cancelPreviewLoading && cancellingBooking?.id === b.id"
                       (click)="openCancelModal(b)">
-                <span class="material-icons" style="font-size:0.9rem">cancel</span>
-                Cancelar reserva
+                <span class="material-icons" style="font-size:0.9rem"
+                      [style.animation]="(cancelPreviewLoading && cancellingBooking?.id === b.id) ? 'spin 1s linear infinite' : 'none'">
+                  {{ (cancelPreviewLoading && cancellingBooking?.id === b.id) ? 'refresh' : 'cancel' }}
+                </span>
+                {{ cancelLabel(b) }}
               </button>
             </div>
 
@@ -293,7 +307,8 @@ import { ReviewService } from '../../services/review.service';
       </div>
 
       <!-- Modal de confirmação de cancelamento -->
-      <div class="modal-overlay" *ngIf="cancellingBooking" (click)="closeCancelModal()">
+      <div class="modal-overlay" *ngIf="cancellingBooking && cancelPreview && !cancelPreviewLoading"
+           (click)="closeCancelModal()">
         <div class="modal-sheet" (click)="$event.stopPropagation()">
 
           <!-- Ícone -->
@@ -316,7 +331,7 @@ import { ReviewService } from '../../services/review.service';
           </p>
 
           <!-- Sem taxa -->
-          <div *ngIf="cancellationIsFree"
+          <div *ngIf="!cancelPreview.requires_fee"
                class="rounded-xl p-3 mb-5 flex gap-2 items-start"
                style="background:hsl(152,69%,40%,0.08);border:1px solid hsl(152,69%,40%,0.2)">
             <span class="material-icons flex-shrink-0" style="font-size:1rem;color:var(--primary);margin-top:1px">check_circle</span>
@@ -326,23 +341,137 @@ import { ReviewService } from '../../services/review.service';
           </div>
 
           <!-- Com taxa -->
-          <div *ngIf="!cancellationIsFree"
+          <div *ngIf="cancelPreview.requires_fee"
                class="rounded-xl p-3 mb-5 flex gap-2 items-start"
                style="background:hsl(0,84%,60%,0.08);border:1px solid hsl(0,84%,60%,0.25)">
             <span class="material-icons flex-shrink-0" style="font-size:1rem;color:hsl(0,72%,51%);margin-top:1px">warning</span>
             <p class="text-xs leading-relaxed" style="color:hsl(0,72%,40%)">
-              Fora do prazo de cancelamento gratuito. Será cobrada uma <strong>taxa de {{ cancellationFeePercent }}%</strong>
-              (R\${{ cancellationFeeAmount | number:'1.2-2' }}) sobre o valor já pago.
-              O restante (R\${{ (cancellingBooking.paid_amount - cancellationFeeAmount) | number:'1.2-2' }}) será reembolsado.
+              Fora do prazo de cancelamento gratuito. Multa: <strong>R\${{ cancelPreview.fee_amount | number:'1.2-2' }}</strong>.
+              Reembolso: <strong>R\${{ cancelPreview.refund_amount | number:'1.2-2' }}</strong>.
             </p>
           </div>
 
-          <button class="btn-confirm-cancel" (click)="confirmCancel()">
-            Sim, cancelar reserva
+          <button class="btn-confirm-cancel" [disabled]="cancelling" (click)="confirmCancel()">
+            <span *ngIf="cancelling" class="material-icons"
+                  style="font-size:1rem;vertical-align:middle;margin-right:0.3rem;animation:spin 1s linear infinite">
+              refresh
+            </span>
+            {{ cancelling ? 'Cancelando...' : 'Sim, cancelar reserva' }}
           </button>
-          <button class="btn-back" (click)="closeCancelModal()">
+          <button class="btn-back" [disabled]="cancelling" (click)="closeCancelModal()">
             Voltar
           </button>
+        </div>
+      </div>
+
+      <!-- ── Modal detalhe de pagamento (split) ── -->
+      <div class="modal-overlay" *ngIf="paymentDetailBooking" (click)="closePaymentDetail()">
+        <div class="modal-sheet" style="max-height:90vh;overflow-y:auto;padding:1.25rem 1rem"
+             (click)="$event.stopPropagation()">
+
+          <!-- Header -->
+          <div class="flex items-center gap-2 mb-4">
+            <button (click)="closePaymentDetail()"
+                    style="background:none;border:none;cursor:pointer;padding:0.25rem;color:var(--muted-foreground)">
+              <span class="material-icons" style="font-size:1.3rem">arrow_back</span>
+            </button>
+            <div class="flex-1 min-w-0">
+              <div class="font-heading font-bold text-sm truncate" style="color:var(--foreground)">
+                {{ getArenaName(paymentDetailBooking) }}
+              </div>
+              <div class="text-xs" style="color:var(--muted-foreground)">
+                {{ paymentDetailBooking.date | date:'dd/MM/yyyy':'UTC' }} · {{ paymentDetailBooking.start_hour }}–{{ paymentDetailBooking.end_hour }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="paymentDetailLoading" class="flex flex-col items-center py-8 gap-3">
+            <span class="material-icons" style="font-size:2.5rem;color:var(--border);animation:spin 1s linear infinite">refresh</span>
+            <p class="text-sm" style="color:var(--muted-foreground)">Carregando cotas...</p>
+          </div>
+
+          <ng-container *ngIf="!paymentDetailLoading && paymentDetailGroup">
+
+            <!-- Progresso -->
+            <div class="rounded-xl p-3 mb-4" style="background:var(--muted)">
+              <div class="flex justify-between mb-2 text-sm">
+                <span class="font-semibold" style="color:var(--foreground)">Divisão entre jogadores</span>
+                <span class="font-semibold" style="color:var(--primary)">
+                  {{ paidSplitsCount(paymentDetailGroup.splits) }} de {{ paymentDetailGroup.splits.length }} pagaram
+                </span>
+              </div>
+              <div style="height:8px;border-radius:999px;background:var(--border);overflow:hidden">
+                <div style="height:100%;border-radius:999px;background:var(--primary);transition:width 0.4s"
+                     [style.width.%]="paymentDetailGroup.total_amount > 0 ? (paymentDetailGroup.paid_amount / paymentDetailGroup.total_amount) * 100 : 0">
+                </div>
+              </div>
+              <div class="flex justify-between mt-1" style="font-size:0.72rem;color:var(--muted-foreground)">
+                <span>R\${{ paymentDetailGroup.paid_amount / 100 | number:'1.2-2' }} pagos</span>
+                <span>R\${{ paymentDetailGroup.total_amount / 100 | number:'1.2-2' }} total</span>
+              </div>
+            </div>
+
+            <!-- Cotas -->
+            <div class="space-y-3 mb-4">
+              <div *ngFor="let split of paymentDetailGroup.splits"
+                   class="rounded-xl p-3"
+                   [style.border]="split.status === 'PAGO' ? '2px solid var(--primary)' : '1.5px solid var(--border)'"
+                   style="background:var(--card)">
+
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                       [style.background]="split.status === 'PAGO' ? 'var(--primary)' : 'var(--muted)'"
+                       [style.color]="split.status === 'PAGO' ? 'white' : 'var(--muted-foreground)'">
+                    <span class="material-icons" style="font-size:1rem">{{ split.status === 'PAGO' ? 'check' : 'person' }}</span>
+                  </div>
+                  <span class="font-semibold text-sm flex-1" style="color:var(--foreground)">{{ split.player_name }}</span>
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full"
+                        [style.background]="split.status === 'PAGO' ? 'hsl(152,69%,40%,0.12)' : 'var(--muted)'"
+                        [style.color]="split.status === 'PAGO' ? 'var(--primary)' : 'var(--muted-foreground)'">
+                    {{ split.status === 'PAGO' ? 'Pago ✓' : split.status === 'EXPIRADO' ? 'Expirado' : 'Pendente' }}
+                  </span>
+                </div>
+
+                <!-- Pendente: exibe QR code e copia-e-cola -->
+                <ng-container *ngIf="split.status === 'PENDENTE'">
+                  <div class="text-center mb-1">
+                    <span class="font-bold text-lg" style="color:var(--primary)">R\${{ split.amount / 100 | number:'1.2-2' }}</span>
+                  </div>
+                  <div *ngIf="split.pix_qr_code"
+                       class="w-36 h-36 rounded-xl overflow-hidden mx-auto mb-2 flex items-center justify-center"
+                       style="background:var(--muted)">
+                    <img [src]="split.pix_qr_code" alt="QR Code PIX" style="width:100%;height:100%;object-fit:cover" />
+                  </div>
+                  <div *ngIf="split.pix_copy_paste"
+                       class="rounded-xl p-2.5 text-xs" style="background:var(--muted)">
+                    <div class="mb-1" style="color:var(--muted-foreground)">PIX Copia e Cola</div>
+                    <div class="break-all mb-1" style="color:var(--foreground)">{{ split.pix_copy_paste | slice:0:50 }}...</div>
+                    <button (click)="copyPixCode(split.pix_copy_paste)"
+                            style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:0.25rem;padding:0">
+                      <span class="material-icons" style="font-size:0.9rem">content_copy</span>
+                      Copiar código
+                    </button>
+                  </div>
+                </ng-container>
+
+                <!-- Pago -->
+                <div *ngIf="split.status === 'PAGO'" class="text-center py-1">
+                  <span class="material-icons" style="font-size:2rem;color:var(--primary)">verified</span>
+                  <div class="text-xs font-semibold mt-0.5" style="color:var(--primary)">
+                    R\${{ split.amount / 100 | number:'1.2-2' }} confirmado
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botão cancelar -->
+            <button class="btn-cancel" (click)="closePaymentDetail(); openCancelModal(paymentDetailBooking)">
+              <span class="material-icons" style="font-size:0.9rem">cancel</span>
+              Cancelar reserva
+            </button>
+
+          </ng-container>
         </div>
       </div>
 
@@ -472,10 +601,18 @@ import { ReviewService } from '../../services/review.service';
 })
 export class MyBookingsComponent implements OnInit {
   activeTab: 'andamento' | 'realizadas' = 'andamento';
-  cancellingBooking: BookingResult | null = null;
-  cancellationIsFree = true;
-  cancellationFeePercent = 0;
-  cancellationFeeAmount = 0;
+
+  // Cancel state
+  cancellingBooking:   BookingResult | null   = null;
+  cancelPreview:       CancelPreview | null   = null;
+  cancelPreviewLoading = false;
+  cancelling           = false;
+
+  // Payment detail state (para split bookings)
+  paymentDetailBooking: BookingResult | null = null;
+  paymentDetailGroup:   PaymentGroup | null  = null;
+  paymentDetailLoading  = false;
+
   private bookings: BookingResult[] = [];
   loading = false;
 
@@ -498,6 +635,16 @@ export class MyBookingsComponent implements OnInit {
     private bookingService: BookingService,
     private reviewService: ReviewService,
   ) {}
+
+  /** Etiqueta do botão cancelar (depende do cancel preview carregado). */
+  cancelLabel(b: BookingResult): string {
+    // Verificamos se é o booking que está em processo de loading
+    if (this.cancellingBooking?.id === b.id && this.cancelPreviewLoading) return 'Verificando...';
+    if (this.cancelPreview && this.cancellingBooking?.id === b.id && this.cancelPreview.requires_fee) {
+      return 'Cancelar com taxa';
+    }
+    return 'Cancelar reserva';
+  }
 
   reviewSubmitting = false;
 
@@ -599,35 +746,84 @@ export class MyBookingsComponent implements OnInit {
     }
   }
 
-  openCancelModal(b: BookingResult): void {
-    this.cancellingBooking = b;
+  async openCancelModal(b: BookingResult): Promise<void> {
+    this.cancellingBooking   = b;
+    this.cancelPreview       = null;
+    this.cancelPreviewLoading = true;
 
-    // Lê a política salva pelo admin (ou usa padrão)
-    const stored = localStorage.getItem('arenaflow_cancel_policy');
-    const policy: { limit_hours: number; fee_percent: number } =
-      stored ? JSON.parse(stored) : { limit_hours: 1, fee_percent: 0 };
+    try {
+      this.cancelPreview = await this.bookingService.getCancelPreview(b.id);
+    } catch (err: any) {
+      const msg = err?.error?.error || 'Não foi possível verificar a política de cancelamento.';
+      this.toast.show(msg);
+      this.cancellingBooking   = null;
+      this.cancelPreviewLoading = false;
+      return;
+    }
 
-    const bookingDate = new Date(`${b.date}T${b.start_hour}:00`);
-    const hoursUntil = (bookingDate.getTime() - Date.now()) / 3_600_000;
+    this.cancelPreviewLoading = false;
 
-    if (policy.limit_hours === 0 || hoursUntil > policy.limit_hours) {
-      this.cancellationIsFree    = true;
-      this.cancellationFeePercent = 0;
-      this.cancellationFeeAmount  = 0;
-    } else {
-      this.cancellationIsFree    = false;
-      this.cancellationFeePercent = policy.fee_percent;
-      this.cancellationFeeAmount  = (b.paid_amount * policy.fee_percent) / 100;
+    // Toast informativo quando há taxa
+    if (this.cancelPreview.requires_fee) {
+      const fee    = this.cancelPreview.fee_amount.toFixed(2).replace('.', ',');
+      const refund = this.cancelPreview.refund_amount.toFixed(2).replace('.', ',');
+      this.toast.show(
+        `Atenção: cancelamento fora do prazo da unidade. Taxa: R$${fee}. Reembolso: R$${refund}.`
+      );
     }
   }
 
   closeCancelModal(): void {
-    this.cancellingBooking = null;
+    this.cancellingBooking   = null;
+    this.cancelPreview       = null;
+    this.cancelPreviewLoading = false;
   }
 
-  confirmCancel(): void {
-    if (!this.cancellingBooking) return;
-    this.data.cancelBooking(this.cancellingBooking.id);
-    this.cancellingBooking = null;
+  async confirmCancel(): Promise<void> {
+    if (!this.cancellingBooking || this.cancelling) return;
+    this.cancelling = true;
+    try {
+      await this.bookingService.cancelBooking(this.cancellingBooking.id);
+      this.toast.show('Reserva cancelada com sucesso.');
+      this.closeCancelModal();
+      // Atualiza lista localmente: marca como cancelado sem recarregar tudo
+      this.bookings = this.bookings.map(bk =>
+        bk.id === this.cancellingBooking?.id ? { ...bk, payment_status: 'cancelado' } : bk
+      );
+      this.closeCancelModal();
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao cancelar. Tente novamente.');
+    } finally {
+      this.cancelling = false;
+    }
+  }
+
+  /** Abre o painel de detalhe de pagamento (para reservas split). */
+  async openPaymentDetail(b: BookingResult): Promise<void> {
+    this.paymentDetailBooking = b;
+    this.paymentDetailGroup   = null;
+    this.paymentDetailLoading = true;
+    try {
+      this.paymentDetailGroup = await this.bookingService.getPaymentGroup(b.id);
+    } catch {
+      this.toast.show('Não foi possível carregar os dados de pagamento.');
+      this.paymentDetailBooking = null;
+    } finally {
+      this.paymentDetailLoading = false;
+    }
+  }
+
+  closePaymentDetail(): void {
+    this.paymentDetailBooking = null;
+    this.paymentDetailGroup   = null;
+  }
+
+  copyPixCode(code: string | null): void {
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => this.toast.show('Código PIX copiado!'));
+  }
+
+  paidSplitsCount(splits: { status: string }[]): number {
+    return splits.filter(s => s.status === 'PAGO').length;
   }
 }

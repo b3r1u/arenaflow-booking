@@ -59,6 +59,14 @@ export interface PaymentGroup {
   splits:       PaymentSplit[];
 }
 
+export interface CancelPreview {
+  requires_fee:    boolean;
+  hours_remaining: number;
+  fee_amount:      number;   // em reais
+  refund_amount:   number;   // em reais
+  reason:          string;   // POLICY_DISABLED | WITHIN_LIMIT | OUT_OF_WINDOW
+}
+
 @Injectable({ providedIn: 'root' })
 export class BookingService {
   constructor(
@@ -143,5 +151,21 @@ export class BookingService {
       this.api.get<{ bookings: BookingResult[] }>('/bookings/me')
     );
     return res.bookings;
+  }
+
+  /** Retorna o preview de cancelamento (idempotente — sem efeitos). */
+  async getCancelPreview(bookingId: string): Promise<CancelPreview> {
+    const res = await firstValueFrom(
+      this.api.get<CancelPreview>(`/bookings/${bookingId}/cancel-preview`)
+    );
+    return res;
+  }
+
+  /** Executa o cancelamento no servidor. */
+  async cancelBooking(bookingId: string): Promise<CancelPreview & { ok: boolean }> {
+    const res = await firstValueFrom(
+      this.api.post<CancelPreview & { ok: boolean }>(`/bookings/${bookingId}/cancel`, {})
+    );
+    return res;
   }
 }
