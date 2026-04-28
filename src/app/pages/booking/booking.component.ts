@@ -290,8 +290,9 @@ import { ReviewService } from '../../services/review.service';
                 Acompanhar cotas dos jogadores
               </button>
 
-              <!-- Cancelar — disponível para todos os status em andamento -->
-              <button class="btn-cancel"
+              <!-- Cancelar — só após pagamento confirmado (Opção A) -->
+              <button *ngIf="['pago','sinal_pago','parcial'].includes(b.payment_status)"
+                      class="btn-cancel"
                       [disabled]="cancelPreviewLoading && cancellingBooking?.id === b.id"
                       (click)="openCancelModal(b)">
                 <span class="material-icons" style="font-size:0.9rem"
@@ -465,8 +466,10 @@ import { ReviewService } from '../../services/review.service';
               </div>
             </div>
 
-            <!-- Botão cancelar -->
-            <button class="btn-cancel" (click)="closePaymentDetail(); openCancelModal(paymentDetailBooking)">
+            <!-- Botão cancelar — só após pagamento confirmado (Opção A) -->
+            <button *ngIf="['pago','sinal_pago','parcial'].includes(paymentDetailBooking?.payment_status ?? '')"
+                    class="btn-cancel"
+                    (click)="closePaymentDetail(); openCancelModal(paymentDetailBooking)">
               <span class="material-icons" style="font-size:0.9rem">cancel</span>
               Cancelar reserva
             </button>
@@ -681,7 +684,7 @@ export class MyBookingsComponent implements OnInit {
 
   get emAndamento(): BookingResult[] {
     return this.userBookings
-      .filter(b => b.payment_status === 'pendente' || b.payment_status === 'parcial')
+      .filter(b => ['pendente', 'parcial', 'sinal_pago'].includes(b.payment_status))
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
