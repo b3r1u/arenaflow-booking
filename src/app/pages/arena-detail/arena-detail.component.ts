@@ -1212,8 +1212,9 @@ import { ReviewService, Review } from '../../services/review.service';
               </div>
             </div>
 
-            <!-- Cancelar reserva -->
-            <button class="btn-cancel-booking"
+            <!-- Cancelar reserva — só exibe após pagamento confirmado pela API -->
+            <button *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
+                    class="btn-cancel-booking"
                     [disabled]="cancelInfoLoading || cancelling"
                     (click)="openCancelFlow()">
               <span class="material-icons" style="font-size:0.9rem"
@@ -1377,8 +1378,9 @@ import { ReviewService, Review } from '../../services/review.service';
               Envie para os jogadores acessarem e pagarem a própria cota
             </p>
 
-            <!-- Cancelar reserva (split) -->
-            <button class="btn-cancel-booking mb-3"
+            <!-- Cancelar reserva (split) — só exibe após pagamento confirmado pela API -->
+            <button *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
+                    class="btn-cancel-booking mb-3"
                     [disabled]="cancelInfoLoading || cancelling"
                     (click)="openCancelFlow()">
               <span class="material-icons" style="font-size:0.9rem"
