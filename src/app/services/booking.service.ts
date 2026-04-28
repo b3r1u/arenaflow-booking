@@ -59,6 +59,15 @@ export interface PaymentGroup {
   splits:       PaymentSplit[];
 }
 
+export interface BalancePaymentResult {
+  remaining_amount:  number;   // em reais
+  pix_qr_code:       string | null;
+  pix_qr_code_url:   string | null;
+  pix_expires_at:    string | null;
+  pagarme_order_id:  string | null;
+  pagarme_charge_id: string | null;
+}
+
 export interface CancelPreview {
   requires_fee:    boolean;
   hours_remaining: number;
@@ -173,6 +182,14 @@ export class BookingService {
   async cancelBooking(bookingId: string): Promise<CancelPreview & { ok: boolean }> {
     const res = await firstValueFrom(
       this.api.post<CancelPreview & { ok: boolean }>(`/bookings/${bookingId}/cancel`, {})
+    );
+    return res;
+  }
+
+  /** Gera um novo PIX para o saldo restante de uma reserva com entrada 50%. */
+  async payBalance(bookingId: string): Promise<BalancePaymentResult> {
+    const res = await firstValueFrom(
+      this.api.post<BalancePaymentResult>(`/bookings/${bookingId}/pay-balance`, {})
     );
     return res;
   }

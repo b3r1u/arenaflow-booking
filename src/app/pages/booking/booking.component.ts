@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
-import { BookingService, BookingResult, CancelPreview, PaymentGroup } from '../../services/booking.service';
+import { BookingService, BookingResult, CancelPreview, PaymentGroup, BalancePaymentResult } from '../../services/booking.service';
 import { ReviewService } from '../../services/review.service';
 
 @Component({
@@ -270,16 +270,16 @@ import { ReviewService } from '../../services/review.service';
                 </ng-container>
               </div>
 
-              <!-- Ação PIX -->
-              <button *ngIf="b.payment_status === 'parcial' && !b.split_payment"
-                      class="btn-primary w-full mt-3 py-2.5 text-sm">
-                <span class="material-icons" style="font-size:0.9rem">pix</span>
-                Pagar saldo restante via PIX
-              </button>
-              <button *ngIf="b.payment_status === 'pendente' && !b.split_payment"
-                      class="btn-primary w-full mt-3 py-2.5 text-sm">
-                <span class="material-icons" style="font-size:0.9rem">pix</span>
-                Pagar agora via PIX
+              <!-- Ação PIX: saldo restante (entrada 50% paga) -->
+              <button *ngIf="b.payment_status === 'sinal_pago' && b.payment_option === '50'"
+                      class="btn-primary w-full mt-3 py-2.5 text-sm"
+                      [disabled]="balanceLoading && balanceBooking?.id === b.id"
+                      (click)="openBalanceModal(b)">
+                <span class="material-icons" style="font-size:0.9rem"
+                      [style.animation]="(balanceLoading && balanceBooking?.id === b.id) ? 'spin 1s linear infinite' : 'none'">
+                  {{ (balanceLoading && balanceBooking?.id === b.id) ? 'refresh' : 'pix' }}
+                </span>
+                {{ (balanceLoading && balanceBooking?.id === b.id) ? 'Gerando PIX...' : 'Pagar saldo restante via PIX' }}
               </button>
 
               <!-- Acompanhar cotas (split payment) -->
@@ -362,6 +362,75 @@ import { ReviewService } from '../../services/review.service';
           <button class="btn-back" [disabled]="cancelling" (click)="closeCancelModal()">
             Voltar
           </button>
+        </div>
+      </div>
+
+      <!-- ── Modal de pagamento do saldo restante ── -->
+      <div class="modal-overlay" *ngIf="balanceModal" (click)="closeBalanceModal()">
+        <div class="modal-sheet" (click)="$event.stopPropagation()">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="font-heading font-bold text-base" style="color:var(--foreground)">Saldo restante</h3>
+              <p class="text-xs mt-0.5" style="color:var(--muted-foreground)">{{ getArenaName(balanceBooking!) }}</p>
+            </div>
+            <button (click)="closeBalanceModal()"
+                    style="background:none;border:none;cursor:pointer;padding:0.25rem;color:var(--muted-foreground)">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+
+          <!-- Valor -->
+          <div class="rounded-xl p-3 mb-4 text-center" style="background:var(--muted)">
+            <p class="text-xs mb-1" style="color:var(--muted-foreground)">Valor a pagar</p>
+            <p class="font-heading font-bold text-2xl" style="color:var(--primary)">
+              R\${{ balanceResult?.remaining_amount | number:'1.2-2' }}
+            </p>
+          </div>
+
+          <!-- Pago! -->
+          <div *ngIf="balanceBooking && bookings_local[balanceBooking.id] === 'pago'"
+               class="text-center py-6">
+            <span class="material-icons" style="font-size:3.5rem;color:var(--primary)">verified</span>
+            <p class="font-heading font-bold mt-2" style="color:var(--primary)">Saldo pago com sucesso!</p>
+            <p class="text-xs mt-1" style="color:var(--muted-foreground)">Sua reserva está 100% confirmada.</p>
+            <button class="btn-primary w-full mt-4" (click)="closeBalanceModal(); loadBookings()">Fechar</button>
+          </div>
+
+          <!-- QR Code -->
+          <ng-container *ngIf="!balanceBooking || bookings_local[balanceBooking.id] !== 'pago'">
+            <div *ngIf="balanceResult?.pix_qr_code"
+                 class="w-44 h-44 rounded-xl overflow-hidden mx-auto mb-3 flex items-center justify-center"
+                 style="background:var(--muted)">
+              <img [src]="balanceResult!.pix_qr_code" alt="QR Code PIX saldo" style="width:100%;height:100%;object-fit:cover" />
+            </div>
+
+            <div *ngIf="balanceResult?.pix_qr_code_url && !balanceResult?.pix_qr_code"
+                 class="w-44 h-44 rounded-xl overflow-hidden mx-auto mb-3 flex items-center justify-center"
+                 style="background:var(--muted)">
+              <img [src]="balanceResult!.pix_qr_code_url" alt="QR Code PIX saldo" style="width:100%;height:100%;object-fit:cover" />
+            </div>
+
+            <div *ngIf="balanceResult?.pix_qr_code_url"
+                 class="rounded-xl p-3 mb-3" style="background:var(--muted)">
+              <p class="text-xs mb-1" style="color:var(--muted-foreground)">PIX Copia e Cola</p>
+              <p class="text-xs break-all mb-2" style="color:var(--foreground)">{{ (balanceResult?.pix_qr_code_url || '') | slice:0:60 }}...</p>
+              <button (click)="copyPixCode(balanceResult?.pix_qr_code_url ?? null)"
+                      style="background:none;border:none;cursor:pointer;color:var(--primary);font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:0.25rem;padding:0">
+                <span class="material-icons" style="font-size:0.9rem">content_copy</span>
+                Copiar código
+              </button>
+            </div>
+
+            <p class="text-xs text-center mb-3" style="color:var(--muted-foreground)">
+              <span class="material-icons" style="font-size:0.8rem;vertical-align:middle">schedule</span>
+              Aguardando confirmação do pagamento...
+            </p>
+
+            <button class="btn-back" (click)="closeBalanceModal()">Fechar</button>
+          </ng-container>
+
         </div>
       </div>
 
@@ -611,6 +680,14 @@ export class MyBookingsComponent implements OnInit {
   cancelPreviewLoading = false;
   cancelling           = false;
 
+  // Balance payment state (saldo restante 50%→100%)
+  balanceBooking:  BookingResult | null       = null;
+  balanceResult:   BalancePaymentResult | null = null;
+  balanceLoading   = false;
+  balanceModal     = false;
+  bookings_local: Record<string, string>      = {}; // id → status local (para feedback imediato)
+  private balancePollTimer: any               = null;
+
   // Payment detail state (para split bookings)
   paymentDetailBooking: BookingResult | null = null;
   paymentDetailGroup:   PaymentGroup | null  = null;
@@ -747,6 +824,53 @@ export class MyBookingsComponent implements OnInit {
     } finally {
       this.reviewSubmitting = false;
     }
+  }
+
+  /** Abre o modal de pagamento do saldo restante (50%→100%). */
+  async openBalanceModal(b: BookingResult): Promise<void> {
+    this.balanceBooking = b;
+    this.balanceResult  = null;
+    this.balanceLoading = true;
+    this.balanceModal   = true;
+
+    try {
+      this.balanceResult = await this.bookingService.payBalance(b.id);
+      this.startBalancePoll(b);
+    } catch (err: any) {
+      const msg = err?.error?.error || 'Erro ao gerar PIX do saldo. Tente novamente.';
+      this.toast.show(msg);
+      this.balanceModal = false;
+      this.balanceBooking = null;
+    } finally {
+      this.balanceLoading = false;
+    }
+  }
+
+  closeBalanceModal(): void {
+    clearInterval(this.balancePollTimer);
+    this.balancePollTimer = null;
+    this.balanceModal     = false;
+    this.balanceBooking   = null;
+    this.balanceResult    = null;
+    this.balanceLoading   = false;
+  }
+
+  /** Poll silencioso até o pagamento ser confirmado. */
+  private startBalancePoll(b: BookingResult): void {
+    clearInterval(this.balancePollTimer);
+    this.balancePollTimer = setInterval(async () => {
+      try {
+        const updated = await this.bookingService.getBookingSilent(b.id);
+        if (updated.payment_status === 'pago') {
+          clearInterval(this.balancePollTimer);
+          this.bookings_local[b.id] = 'pago';
+          // Atualiza também a lista principal
+          this.bookings = this.bookings.map(bk =>
+            bk.id === b.id ? { ...bk, payment_status: 'pago', paid_amount: bk.total_amount } : bk
+          );
+        }
+      } catch { /* silencioso */ }
+    }, 4000);
   }
 
   async openCancelModal(b: BookingResult): Promise<void> {
