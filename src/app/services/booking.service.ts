@@ -161,6 +161,14 @@ export class BookingService {
     return res;
   }
 
+  /** Versão silenciosa (sem loader global) — usada no polling. */
+  async getCancelPreviewSilent(bookingId: string): Promise<CancelPreview> {
+    const res = await firstValueFrom(
+      this.api.getSilent<CancelPreview>(`/bookings/${bookingId}/cancel-preview`)
+    );
+    return res;
+  }
+
   /** Executa o cancelamento no servidor. */
   async cancelBooking(bookingId: string): Promise<CancelPreview & { ok: boolean }> {
     const res = await firstValueFrom(

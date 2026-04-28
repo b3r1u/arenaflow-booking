@@ -1212,9 +1212,8 @@ import { ReviewService, Review } from '../../services/review.service';
               </div>
             </div>
 
-            <!-- Cancelar reserva (apenas antes do pagamento ser confirmado) -->
-            <button *ngIf="!paymentConfirmed"
-                    class="btn-cancel-booking"
+            <!-- Cancelar reserva -->
+            <button class="btn-cancel-booking"
                     [disabled]="cancelInfoLoading || cancelling"
                     (click)="openCancelFlow()">
               <span class="material-icons" style="font-size:0.9rem"
@@ -1378,9 +1377,8 @@ import { ReviewService, Review } from '../../services/review.service';
               Envie para os jogadores acessarem e pagarem a própria cota
             </p>
 
-            <!-- Cancelar reserva (split — apenas antes de estar completamente pago) -->
-            <button *ngIf="!paymentConfirmed"
-                    class="btn-cancel-booking mb-3"
+            <!-- Cancelar reserva (split) -->
+            <button class="btn-cancel-booking mb-3"
                     [disabled]="cancelInfoLoading || cancelling"
                     (click)="openCancelFlow()">
               <span class="material-icons" style="font-size:0.9rem"
@@ -2123,9 +2121,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
           this.toast.show('Pagamento confirmado! Reserva garantida ✅');
         } else {
           // Atualiza o preview de cancelamento para refletir se a janela gratuita já expirou.
-          // Feito silenciosamente dentro do mesmo ciclo de polling (sem estado de loading).
+          // Usa versão silenciosa para não acionar o loader global.
           try {
-            this.cancelInfo = await this.bookingService.getCancelPreview(bookingId);
+            this.cancelInfo = await this.bookingService.getCancelPreviewSilent(bookingId);
           } catch { /* mantém o cancelInfo atual em caso de erro */ }
         }
       } catch { /* ignora */ }
@@ -2260,7 +2258,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     if (!this.confirmedBooking) return;
     this.cancelInfoLoading = true;
     try {
-      this.cancelInfo = await this.bookingService.getCancelPreview(this.confirmedBooking.id);
+      this.cancelInfo = await this.bookingService.getCancelPreviewSilent(this.confirmedBooking.id);
     } catch { /* silencioso — botão aparece como "Cancelar reserva" por padrão */ }
     finally { this.cancelInfoLoading = false; }
   }
