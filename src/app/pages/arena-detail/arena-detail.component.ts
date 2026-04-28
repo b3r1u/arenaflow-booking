@@ -588,10 +588,18 @@ import { ReviewService, Review } from '../../services/review.service';
       flex-shrink: 0;
     }
 
+    /* ── Cancel section (wrapper com separador visual) ── */
+    .cancel-section {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      width: 100%;
+    }
+
     /* ── Cancel button ── */
     .btn-cancel-booking {
       width: 100%;
-      padding: 0.65rem;
+      padding: 0.7rem;
       border-radius: 0.75rem;
       font-size: 0.85rem;
       font-weight: 600;
@@ -605,9 +613,9 @@ import { ReviewService, Review } from '../../services/review.service';
       justify-content: center;
       gap: 0.35rem;
       transition: background 0.15s;
-      margin-top: 0.75rem;
+      box-sizing: border-box;
     }
-    .btn-cancel-booking:hover   { background: hsl(0,72%,51%,0.06); }
+    .btn-cancel-booking:hover    { background: hsl(0,72%,51%,0.06); }
     .btn-cancel-booking:disabled { opacity: 0.55; cursor: not-allowed; }
 
     /* ── Cancel modal ── */
@@ -1213,16 +1221,18 @@ import { ReviewService, Review } from '../../services/review.service';
             </div>
 
             <!-- Cancelar reserva — só exibe após pagamento confirmado pela API -->
-            <button *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
-                    class="btn-cancel-booking"
-                    [disabled]="cancelInfoLoading || cancelling"
-                    (click)="openCancelFlow()">
-              <span class="material-icons" style="font-size:0.9rem"
-                    [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
-                {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
-              </span>
-              {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
-            </button>
+            <div *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
+                 class="cancel-section">
+              <button class="btn-cancel-booking"
+                      [disabled]="cancelInfoLoading || cancelling"
+                      (click)="openCancelFlow()">
+                <span class="material-icons" style="font-size:0.9rem"
+                      [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
+                  {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
+                </span>
+                {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
+              </button>
+            </div>
 
             <!-- Avaliar arena -->
             <button class="btn-primary w-full py-3 mb-3" [class.mt-3]="!paymentConfirmed" (click)="goToReview()">
@@ -1379,16 +1389,18 @@ import { ReviewService, Review } from '../../services/review.service';
             </p>
 
             <!-- Cancelar reserva (split) — só exibe após pagamento confirmado pela API -->
-            <button *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
-                    class="btn-cancel-booking mb-3"
-                    [disabled]="cancelInfoLoading || cancelling"
-                    (click)="openCancelFlow()">
-              <span class="material-icons" style="font-size:0.9rem"
-                    [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
-                {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
-              </span>
-              {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
-            </button>
+            <div *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
+                 class="cancel-section" style="margin-bottom:0.75rem">
+              <button class="btn-cancel-booking"
+                      [disabled]="cancelInfoLoading || cancelling"
+                      (click)="openCancelFlow()">
+                <span class="material-icons" style="font-size:0.9rem"
+                      [style.animation]="(cancelInfoLoading || cancelling) ? 'spin 1s linear infinite' : 'none'">
+                  {{ (cancelInfoLoading || cancelling) ? 'refresh' : 'cancel' }}
+                </span>
+                {{ cancelling ? 'Cancelando...' : cancelInfoLoading ? 'Verificando...' : (cancelInfo?.requires_fee ? 'Cancelar com taxa' : 'Cancelar reserva') }}
+              </button>
+            </div>
 
             <div class="flex gap-2">
               <button class="btn-outline flex-1" (click)="resetToArena()">
