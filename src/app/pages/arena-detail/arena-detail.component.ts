@@ -540,6 +540,20 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
       background: var(--muted);
       border-color: transparent;
     }
+    .slot-btn.mensalista {
+      background: hsl(36,95%,55%,0.1);
+      border-color: hsl(36,95%,55%,0.4);
+      color: hsl(36,70%,38%);
+      cursor: not-allowed;
+    }
+    [data-theme="dark"] .slot-btn.mensalista {
+      color: hsl(36,90%,65%);
+    }
+    .mensalista-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.35rem;
+    }
     .slot-label-hint {
       font-size: 0.52rem;
       font-weight: 500;
@@ -1667,7 +1681,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           <!-- Quadra -->
           <div class="mb-4">
             <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">QUADRA</label>
-            <select class="input" [(ngModel)]="mensalistaForm.court_id">
+            <select class="input" [(ngModel)]="mensalistaForm.court_id" (ngModelChange)="loadMensalistaSlots()">
               <option value="">Selecione a quadra...</option>
               <option *ngFor="let c of availableCourts" [value]="c.id">{{ c.name }} — R\${{ c.hourly_rate }}/h</option>
             </select>
@@ -1683,35 +1697,76 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                       [style]="mensalistaForm.day_of_week === d.value
                         ? 'background:var(--primary);color:white;border-color:var(--primary)'
                         : 'background:transparent;color:var(--muted-foreground);border-color:var(--border)'"
-                      (click)="mensalistaForm.day_of_week = d.value">
+                      (click)="mensalistaForm.day_of_week = d.value; loadMensalistaSlots()">
                 {{ d.label }}
               </button>
             </div>
           </div>
 
-          <!-- Início -->
-          <div class="mb-4">
-            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">INÍCIO</label>
-            <select class="input" [(ngModel)]="mensalistaForm.start_hour" (ngModelChange)="onMensalistaStartChange()">
-              <option value="">Selecione...</option>
-              <option *ngFor="let h of hours" [value]="h">{{ h }}</option>
-            </select>
+          <!-- Seletor de horário (pills) -->
+          <div class="mb-5" *ngIf="mensalistaForm.court_id">
+            <!-- Instrução contextual -->
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold" style="color:var(--muted-foreground)">
+                {{ mensalistaSlotStep === 'start' ? 'SELECIONE O INÍCIO' : 'SELECIONE O FIM' }}
+              </label>
+              <span *ngIf="mensalistaForm.start_hour && mensalistaSlotStep === 'end'"
+                    class="text-xs font-semibold cursor-pointer"
+                    style="color:var(--primary)"
+                    (click)="mensalistaSlotStep = 'start'; mensalistaForm.start_hour = ''; mensalistaForm.end_hour = ''">
+                ← Alterar início
+              </span>
+            </div>
+
+            <!-- Loading -->
+            <div *ngIf="mensalistaSlotsLoading" class="flex items-center justify-center py-4">
+              <span class="material-icons animate-spin text-sm mr-2" style="color:var(--primary);animation:spin 1s linear infinite">autorenew</span>
+              <span class="text-xs" style="color:var(--muted-foreground)">Verificando disponibilidade…</span>
+            </div>
+
+            <!-- Grid de horas -->
+            <div *ngIf="!mensalistaSlotsLoading" class="mensalista-grid">
+              <button *ngFor="let h of hours"
+                      type="button"
+                      class="slot-btn"
+                      [ngClass]="getMensalistaHourStatus(h)"
+                      [disabled]="isMensalistaHourDisabled(h)"
+                      (click)="onMensalistaHourClick(h)">
+                <span>{{ h }}</span>
+                <span *ngIf="getMensalistaHourStatus(h) === 'mensalista'" class="slot-label-hint" style="font-size:0.48rem">Mensalista</span>
+                <span *ngIf="getMensalistaHourStatus(h) === 'start'" class="slot-label-hint">início</span>
+                <span *ngIf="getMensalistaHourStatus(h) === 'end'"   class="slot-label-hint">fim</span>
+              </button>
+            </div>
+
+            <!-- Legenda -->
+            <div *ngIf="!mensalistaSlotsLoading" class="slot-legend mt-2">
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:var(--primary)"></div>
+                Selecionado
+              </div>
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:hsl(152,69%,40%,0.13);border:1px solid hsl(152,69%,40%,0.35)"></div>
+                Intervalo
+              </div>
+              <div class="legend-item">
+                <div class="legend-swatch" style="background:hsl(36,95%,55%,0.1);border:1px solid hsl(36,95%,55%,0.4)"></div>
+                Mensalista
+              </div>
+            </div>
           </div>
 
-          <!-- Fim -->
-          <div class="mb-5">
-            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">FIM</label>
-            <select class="input" [(ngModel)]="mensalistaForm.end_hour">
-              <option value="">Selecione...</option>
-              <option *ngFor="let h of mensalistaEndHours" [value]="h">{{ h }}</option>
-            </select>
+          <!-- Placeholder antes de escolher quadra -->
+          <div *ngIf="!mensalistaForm.court_id" class="rounded-xl p-4 mb-5 text-center"
+               style="background:var(--muted)">
+            <span class="text-xs" style="color:var(--muted-foreground)">Selecione uma quadra para ver os horários disponíveis.</span>
           </div>
 
           <!-- Resumo do valor -->
-          <div *ngIf="mensalistaForm.start_hour && mensalistaForm.end_hour && mensalistaForm.court_id"
-               class="rounded-xl p-3 mb-4" style="background:var(--muted)">
+          <div *ngIf="mensalistaForm.start_hour && mensalistaForm.end_hour"
+               class="rounded-xl p-3 mb-4" style="background:hsl(152,69%,40%,0.07);border:1px solid hsl(152,69%,40%,0.2)">
             <div class="flex justify-between text-sm">
-              <span style="color:var(--muted-foreground)">Duração</span>
+              <span style="color:var(--muted-foreground)">{{ dayName(mensalistaForm.day_of_week) }} · {{ mensalistaForm.start_hour }}–{{ mensalistaForm.end_hour }}</span>
               <span class="font-semibold" style="color:var(--foreground)">{{ mensalistaDuration }}h</span>
             </div>
             <div class="flex justify-between text-sm mt-1">
@@ -2022,7 +2077,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   // ── Mensalista state ──────────────────────────────────────────────────────
   mensalistaModal   = false;
   mensalistaStep: 'rules' | 'select' | 'pix' | 'confirmed' = 'rules';
-  mensalistaCreating = false;
+  mensalistaCreating   = false;
+  mensalistaSlotsLoading = false;
+  mensalistaSlotStep: 'start' | 'end' = 'start';
+  mensalistaBlockedSlots: { start_hour: string; end_hour: string }[] = [];
   createdMensalista: MensalistaResult | null = null;
   private mensalistaPollInterval: any = null;
   private mensalistaPollCount   = 0;
@@ -2070,11 +2128,87 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     this.mensalistaForm.end_hour = '';
   }
 
+  /** Carrega os slots bloqueados do backend (quadra + dia selecionados). */
+  async loadMensalistaSlots(): Promise<void> {
+    const { court_id, day_of_week } = this.mensalistaForm;
+    if (!court_id) { this.mensalistaBlockedSlots = []; return; }
+    this.mensalistaSlotsLoading = true;
+    // Reseta seleção de hora ao mudar quadra/dia
+    this.mensalistaForm.start_hour = '';
+    this.mensalistaForm.end_hour   = '';
+    this.mensalistaSlotStep        = 'start';
+    try {
+      this.mensalistaBlockedSlots = await this.mensalistaService.getSlots(court_id, day_of_week);
+    } catch {
+      this.mensalistaBlockedSlots = [];
+    } finally {
+      this.mensalistaSlotsLoading = false;
+    }
+  }
+
+  /**
+   * Retorna o estado visual de cada hora no seletor do mensalista.
+   * Estados: 'mensalista' | 'available' | 'available-end' | 'start' | 'end' | 'in-range' | 'blocked'
+   */
+  getMensalistaHourStatus(h: string): string {
+    const hInt = parseInt(h);
+    const { start_hour, end_hour } = this.mensalistaForm;
+
+    if (this.mensalistaSlotStep === 'start') {
+      // Última hora (23:00) não pode ser início
+      if (hInt >= 23) return 'blocked';
+      // Bloqueado por mensalista existente
+      const isMensalista = this.mensalistaBlockedSlots.some(
+        m => hInt >= parseInt(m.start_hour) && hInt < parseInt(m.end_hour)
+      );
+      if (isMensalista) return 'mensalista';
+      if (h === start_hour) return 'start';
+      return 'available';
+    } else {
+      // Selecionando fim — início já escolhido
+      const sInt = parseInt(start_hour);
+      if (hInt <= sInt) return 'blocked'; // fim deve ser depois do início
+      // Verifica overlap com mensalista existente: [start, h] vs [ms, me]
+      // Overlap se: sInt < me E hInt > ms
+      const wouldOverlap = this.mensalistaBlockedSlots.some(
+        m => sInt < parseInt(m.end_hour) && hInt > parseInt(m.start_hour)
+      );
+      if (wouldOverlap) return 'mensalista';
+      if (h === end_hour)                                       return 'end';
+      if (end_hour && hInt > sInt && hInt < parseInt(end_hour)) return 'in-range';
+      return 'available-end';
+    }
+  }
+
+  isMensalistaHourDisabled(h: string): boolean {
+    const s = this.getMensalistaHourStatus(h);
+    return s === 'mensalista' || s === 'blocked';
+  }
+
+  onMensalistaHourClick(h: string): void {
+    if (this.isMensalistaHourDisabled(h)) return;
+    if (this.mensalistaSlotStep === 'start') {
+      this.mensalistaForm.start_hour = h;
+      this.mensalistaForm.end_hour   = '';
+      this.mensalistaSlotStep        = 'end';
+    } else {
+      this.mensalistaForm.end_hour = h;
+      // Mantém no step 'end' para permitir re-seleção do fim
+    }
+  }
+
   openMensalistaFlow(): void {
-    this.mensalistaModal = true;
-    this.mensalistaStep  = 'rules';
-    this.createdMensalista = null;
-    this.mensalistaForm  = { court_id: '', day_of_week: 1, start_hour: '', end_hour: '' };
+    this.mensalistaModal        = true;
+    this.mensalistaStep         = 'rules';
+    this.mensalistaSlotStep     = 'start';
+    this.mensalistaBlockedSlots = [];
+    this.createdMensalista      = null;
+    this.mensalistaForm         = { court_id: '', day_of_week: 1, start_hour: '', end_hour: '' };
+    // Pré-carrega se já houver só uma quadra
+    if (this.availableCourts.length === 1) {
+      this.mensalistaForm.court_id = this.availableCourts[0].id;
+      this.loadMensalistaSlots();
+    }
   }
 
   closeMensalistaFlow(): void {

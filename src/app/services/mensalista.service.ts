@@ -66,4 +66,14 @@ export class MensalistaService {
       this.api.delete<any>(`/mensalistas/${id}`)
     );
   }
+
+  async getSlots(courtId: string, dayOfWeek: number): Promise<{ start_hour: string; end_hour: string }[]> {
+    const r = await firstValueFrom(
+      this.api.get<{ slots: { start_hour: string; end_hour: string }[] }>(
+        '/mensalistas/slots',
+        { court_id: courtId, day_of_week: String(dayOfWeek) }
+      )
+    );
+    return r.slots;
+  }
 }
