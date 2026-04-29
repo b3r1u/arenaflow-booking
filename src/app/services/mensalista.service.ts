@@ -3,12 +3,13 @@ import { firstValueFrom } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface CreateMensalistaDto {
-  court_id:      string;
-  client_name:   string;
-  client_phone?: string;
-  day_of_week:   number;   // 0=Dom, 1=Seg, ... 6=Sáb
-  start_hour:    string;   // HH:00
-  end_hour:      string;   // HH:00
+  court_id:         string;
+  client_name:      string;
+  client_phone?:    string;
+  client_document?: string;  // CPF — usado para gerar o PIX no Pagar.me
+  day_of_week:      number;  // 0=Dom, 1=Seg, ... 6=Sáb
+  start_hour:       string;  // HH:00
+  end_hour:         string;  // HH:00
 }
 
 export interface MensalistaResult {
@@ -30,7 +31,9 @@ export interface MensalistaResult {
   pagarme_order_id: string | null;
   created_at:       string;
   court: {
-    name: string;
+    name:             string;
+    hourly_rate?:     number;
+    mensalista_rate?: number | null;
     establishment: {
       name:          string;
       logo_color:    string;
@@ -61,6 +64,13 @@ export class MensalistaService {
     );
   }
 
+  /** Versão silenciosa — não dispara o loading global (usada no polling de 5s). */
+  async getOneSilent(id: string): Promise<MensalistaResult> {
+    return firstValueFrom(
+      this.api.getSilent<MensalistaResult>(`/mensalistas/${id}`)
+    );
+  }
+
   async cancel(id: string): Promise<void> {
     await firstValueFrom(
       this.api.delete<any>(`/mensalistas/${id}`)
@@ -70,6 +80,13 @@ export class MensalistaService {
   async renew(id: string): Promise<MensalistaResult> {
     return firstValueFrom(
       this.api.post<MensalistaResult>(`/mensalistas/${id}/renovar`, {})
+    );
+  }
+
+  /** Regenera o PIX para um mensalista PENDENTE (QR expirado ou nunca gerado). */
+  async reissuePix(id: string): Promise<MensalistaResult> {
+    return firstValueFrom(
+      this.api.post<MensalistaResult>(`/mensalistas/${id}/reemitir-pix`, {})
     );
   }
 

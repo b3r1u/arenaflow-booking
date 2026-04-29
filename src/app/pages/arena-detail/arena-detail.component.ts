@@ -735,6 +735,77 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
       margin-top: 0.5rem;
     }
     .btn-back-modal:hover { background: var(--muted); }
+
+    /* ── MC Cards — seletor de quadra no fluxo mensalista ── */
+    .mc-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.5rem;
+    }
+    .mc-card {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.7rem 0.75rem;
+      border-radius: 0.875rem;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      cursor: pointer; text-align: left; width: 100%;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .mc-card:hover {
+      border-color: var(--primary);
+      background: hsl(152,69%,40%,0.04);
+      box-shadow: 0 2px 12px hsl(152,69%,40%,0.1);
+    }
+    .mc-card--selected {
+      border-color: var(--primary);
+      background: hsl(152,69%,40%,0.07);
+      box-shadow: 0 2px 12px hsl(152,69%,40%,0.12);
+    }
+    .mc-card-icon {
+      width: 2rem; height: 2rem;
+      border-radius: 0.625rem;
+      background: hsl(152,69%,40%,0.1);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .mc-card--selected .mc-card-icon { background: var(--primary); }
+    .mc-card-icon .material-icons { font-size: 1rem !important; color: var(--primary); transition: color 0.15s; }
+    .mc-card--selected .mc-card-icon .material-icons { color: white; }
+    .mc-card-body { flex: 1; min-width: 0; }
+    .mc-card-name {
+      display: block; font-size: 0.78rem; font-weight: 700;
+      color: var(--foreground);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--font-heading, inherit);
+      line-height: 1.2;
+    }
+    .mc-card-rate {
+      display: block; font-size: 0.67rem; font-weight: 600;
+      color: var(--primary); margin-top: 0.15rem;
+    }
+    .mc-card-check {
+      font-size: 1.1rem !important; color: var(--primary);
+      flex-shrink: 0; opacity: 0; transform: scale(0.6);
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .mc-card--selected .mc-card-check { opacity: 1; transform: scale(1); }
+
+    /* ── Alterar início chip ── */
+    .alterar-inicio-chip {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      font-size: 0.7rem; font-weight: 700;
+      color: var(--primary);
+      background: hsl(152,69%,40%,0.1);
+      border: 1px solid hsl(152,69%,40%,0.28);
+      border-radius: 2rem; padding: 0.22rem 0.6rem;
+      cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+      font-family: var(--font-heading, inherit);
+    }
+    .alterar-inicio-chip:hover {
+      background: hsl(152,69%,40%,0.18);
+      box-shadow: 0 1px 6px hsl(152,69%,40%,0.15);
+    }
   `],
   template: `
     <div>
@@ -1758,7 +1829,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           <button class="btn-primary w-full" (click)="mensalistaStep = 'select'">
             Escolher dia e horário
           </button>
-          <button class="btn-back" (click)="closeMensalistaFlow()">Fechar</button>
+          <button class="btn-back-modal" (click)="closeMensalistaFlow()">Fechar</button>
         </ng-container>
 
         <!-- ── Etapa 2: Selecionar quadra, dia, horário ── -->
@@ -1770,11 +1841,23 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
 
           <!-- Quadra -->
           <div class="mb-4">
-            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">QUADRA</label>
-            <select class="input" [(ngModel)]="mensalistaForm.court_id" (ngModelChange)="loadMensalistaSlots()">
-              <option value="">Selecione a quadra...</option>
-              <option *ngFor="let c of availableCourts" [value]="c.id">{{ c.name }} — {{ mensalistaRateLabel(c) }}</option>
-            </select>
+            <label class="block text-xs font-semibold mb-2" style="color:var(--muted-foreground)">QUADRA</label>
+            <div class="mc-cards-grid">
+              <button *ngFor="let c of availableCourts"
+                      type="button"
+                      class="mc-card"
+                      [class.mc-card--selected]="mensalistaForm.court_id === c.id"
+                      (click)="mensalistaForm.court_id = c.id; loadMensalistaSlots()">
+                <div class="mc-card-icon">
+                  <span class="material-icons">{{ sportIcon(c.sport_type) }}</span>
+                </div>
+                <div class="mc-card-body">
+                  <span class="mc-card-name">{{ c.name }}</span>
+                  <span class="mc-card-rate">{{ mensalistaRateLabel(c) }}</span>
+                </div>
+                <span class="material-icons mc-card-check">check_circle</span>
+              </button>
+            </div>
           </div>
 
           <!-- Dia da semana -->
@@ -1800,12 +1883,13 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
               <label class="text-xs font-semibold" style="color:var(--muted-foreground)">
                 {{ mensalistaSlotStep === 'start' ? 'SELECIONE O INÍCIO' : 'SELECIONE O FIM' }}
               </label>
-              <span *ngIf="mensalistaForm.start_hour && mensalistaSlotStep === 'end'"
-                    class="text-xs font-semibold cursor-pointer"
-                    style="color:var(--primary)"
-                    (click)="mensalistaSlotStep = 'start'; mensalistaForm.start_hour = ''; mensalistaForm.end_hour = ''">
-                ← Alterar início
-              </span>
+              <button *ngIf="mensalistaForm.start_hour && mensalistaSlotStep === 'end'"
+                      type="button"
+                      class="alterar-inicio-chip"
+                      (click)="mensalistaSlotStep = 'start'; mensalistaForm.start_hour = ''; mensalistaForm.end_hour = ''">
+                <span class="material-icons" style="font-size:0.75rem">edit</span>
+                Alterar início
+              </button>
             </div>
 
             <!-- Loading -->
@@ -1870,7 +1954,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                   (click)="confirmMensalista()">
             {{ mensalistaCreating ? 'Gerando PIX...' : 'Gerar PIX de pagamento' }}
           </button>
-          <button class="btn-back" [disabled]="mensalistaCreating" (click)="closeMensalistaFlow()">Cancelar</button>
+          <button class="btn-back-modal" [disabled]="mensalistaCreating" (click)="closeMensalistaFlow()">Cancelar</button>
         </ng-container>
 
         <!-- ── Etapa 3: PIX gerado ── -->
@@ -2211,6 +2295,18 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     return this.mensalistaDuration * rate;
   }
 
+  /** Ícone Material para o tipo de esporte da quadra. */
+  sportIcon(sportType: string): string {
+    const icons: Record<string, string> = {
+      'vôlei':       'sports_volleyball',
+      'futevôlei':   'sports_volleyball',
+      'beach tennis':'sports_tennis',
+      'futebol':     'sports_soccer',
+      'ambos':       'grid_view',
+    };
+    return icons[sportType] ?? 'sports';
+  }
+
   /** Texto do preço a exibir para o plano mensalista da quadra. */
   mensalistaRateLabel(court: Court): string {
     if (court.mensalista_rate) {
@@ -2275,6 +2371,8 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
       if (wouldOverlap) return 'mensalista';
       if (h === end_hour)                                       return 'end';
       if (end_hour && hInt > sInt && hInt < parseInt(end_hour)) return 'in-range';
+      // Seleção concluída: horas após o fim ficam neutras (cinza)
+      if (end_hour && hInt > parseInt(end_hour))                return 'blocked';
       return 'available-end';
     }
   }
@@ -2328,8 +2426,9 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         day_of_week,
         start_hour,
         end_hour,
-        client_name:  profile.name || this.auth.user()?.displayName || 'Cliente',
-        client_phone: profile.phone || undefined,
+        client_name:      profile.name  || this.auth.user()?.displayName || 'Cliente',
+        client_phone:     profile.phone || undefined,
+        client_document:  profile.cpf   || undefined,
       });
       this.createdMensalista = result;
       this.mensalistaStep    = 'pix';
@@ -2358,9 +2457,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         return;
       }
       try {
-        const fresh = await this.mensalistaService.getOne(mensalistaId);
-        this.createdMensalista = fresh;
+        // getSilent → não dispara loading global; só atualiza UI ao confirmar pagamento
+        const fresh = await this.mensalistaService.getOneSilent(mensalistaId);
         if (fresh.payment_status === 'PAGO') {
+          this.createdMensalista = fresh;
           this.stopMensalistaPolling();
           this.mensalistaStep = 'confirmed';
           this.toast.show('Pagamento confirmado! Mensalista ativado ✅');

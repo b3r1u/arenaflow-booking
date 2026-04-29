@@ -686,7 +686,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
         </div>
 
         <!-- Empty state -->
-        <div *ngIf="!mensalistaLoading && mensalistas.length === 0" class="text-center py-16">
+        <div *ngIf="!mensalistaLoading && visibleMensalistas.length === 0" class="text-center py-16">
           <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
                style="background:var(--muted)">
             <span class="material-icons" style="font-size:1.8rem;color:var(--border)">repeat</span>
@@ -698,8 +698,8 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
         </div>
 
         <!-- Lista -->
-        <div class="space-y-3" *ngIf="!mensalistaLoading && mensalistas.length > 0">
-          <div *ngFor="let m of mensalistas" class="booking-card">
+        <div class="space-y-3" *ngIf="!mensalistaLoading && visibleMensalistas.length > 0">
+          <div *ngFor="let m of visibleMensalistas" class="booking-card">
 
             <!-- Topo colorido -->
             <div class="px-4 py-3 flex items-center justify-between"
@@ -747,13 +747,26 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                 </span>
               </div>
 
-              <!-- PIX pendente -->
+              <!-- PIX pendente com QR já gerado -->
               <button *ngIf="m.payment_status === 'PENDENTE' && m.pix_qr_code_url"
                       class="btn-primary w-full text-sm mt-1 flex items-center justify-center gap-2"
                       style="padding:0.6rem"
                       (click)="openMensalistaQr(m)">
                 <span class="material-icons" style="font-size:1rem">qr_code_2</span>
                 Ver QR Code PIX
+              </button>
+
+              <!-- PIX pendente sem QR (expirado ou não gerado) -->
+              <button *ngIf="m.payment_status === 'PENDENTE' && !m.pix_qr_code_url"
+                      class="btn-primary w-full text-sm mt-1 flex items-center justify-center gap-2"
+                      style="padding:0.6rem"
+                      [disabled]="reissuingPixId === m.id"
+                      (click)="reissuePix(m)">
+                <span class="material-icons" style="font-size:1rem"
+                      [style.animation]="reissuingPixId === m.id ? 'spin 1s linear infinite' : 'none'">
+                  {{ reissuingPixId === m.id ? 'refresh' : 'pix' }}
+                </span>
+                {{ reissuingPixId === m.id ? 'Gerando PIX...' : 'Gerar PIX — R$' + mensalistaTotal(m) }}
               </button>
 
               <!-- Botão renovar (aparece 1 dia antes do vencimento) -->
@@ -903,6 +916,7 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
   mensalistaQrModal           = false;
   cancellingMensalista:       MensalistaResult | null = null;
   cancellingMensalistaLoading = false;
+  reissuingPixId:             string | null = null;
 
   // Renovação
   renewingMensalista:   MensalistaResult | null = null;  // mensalista em processo de renovação
@@ -992,8 +1006,22 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Só exibe ATIVO e PENDENTE — cancelados/inativos somem da tela. */
+  get visibleMensalistas(): MensalistaResult[] {
+    return this.mensalistas.filter(m =>
+      m.status === 'ATIVO' || m.payment_status === 'PENDENTE'
+    );
+  }
+
   get activeMensalistas(): MensalistaResult[] {
-    return this.mensalistas.filter(m => m.status === 'ATIVO');
+    return this.mensalistas.filter(m => m.status === 'ATIVO' || m.payment_status === 'PENDENTE');
+  }
+
+  /** Valor total do plano mensal formatado em reais (ex: "12,00"). */
+  mensalistaTotal(m: MensalistaResult): string {
+    const rate     = m.court.mensalista_rate ?? m.court.hourly_rate ?? 0;
+    const duration = parseInt(m.end_hour) - parseInt(m.start_hour);
+    return (duration * rate).toFixed(2).replace('.', ',');
   }
 
   dayName(day: number): string {
@@ -1034,6 +1062,22 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
       this.toast.show(err?.error?.error || 'Erro ao cancelar. Tente novamente.');
     } finally {
       this.cancellingMensalistaLoading = false;
+    }
+  }
+
+  /** Reemite o PIX para um mensalista PENDENTE sem QR code válido. */
+  async reissuePix(m: MensalistaResult): Promise<void> {
+    if (this.reissuingPixId) return;
+    this.reissuingPixId = m.id;
+    try {
+      const updated = await this.mensalistaService.reissuePix(m.id);
+      this.mensalistas = this.mensalistas.map(x => x.id === updated.id ? updated : x);
+      this.selectedMensalista = updated;
+      this.mensalistaQrModal  = true;
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao gerar PIX. Tente novamente.');
+    } finally {
+      this.reissuingPixId = null;
     }
   }
 
@@ -1098,12 +1142,11 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
       this.renewPollCount++;
       if (this.renewPollCount > 120) { this.stopRenewPolling(); return; }
       try {
-        const fresh = await this.mensalistaService.getOne(id);
-        this.renewingMensalista = fresh;
-        this.mensalistas = this.mensalistas.map(x => x.id === id ? fresh : x);
+        const fresh = await this.mensalistaService.getOneSilent(id);
         if (fresh.payment_status === 'PAGO') {
+          this.mensalistas = this.mensalistas.map(x => x.id === id ? fresh : x);
           this.stopRenewPolling();
-          this.renewPixModal = false;
+          this.renewPixModal      = false;
           this.renewingMensalista = null;
           this.toast.show('Renovação confirmada! Mensalista ativo por mais 1 mês ✅');
         }
