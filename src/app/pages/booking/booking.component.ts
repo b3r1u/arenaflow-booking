@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../../services/data.service';
@@ -738,6 +738,15 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                 </span>
               </div>
 
+              <!-- Contador de dias restantes (só para ATIVO e com valid_until) -->
+              <div *ngIf="m.status === 'ATIVO' && m.valid_until && m.payment_status !== 'PENDENTE'"
+                   class="flex items-center gap-2 mb-3">
+                <span class="badge" [ngClass]="daysChipClass(m)">
+                  <span class="material-icons" style="font-size:0.65rem;margin-right:0.2rem">timer</span>
+                  {{ daysLabel(m) }}
+                </span>
+              </div>
+
               <!-- PIX pendente -->
               <button *ngIf="m.payment_status === 'PENDENTE' && m.pix_qr_code_url"
                       class="btn-primary w-full text-sm mt-1 flex items-center justify-center gap-2"
@@ -745,6 +754,15 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                       (click)="openMensalistaQr(m)">
                 <span class="material-icons" style="font-size:1rem">qr_code_2</span>
                 Ver QR Code PIX
+              </button>
+
+              <!-- Botão renovar (aparece 1 dia antes do vencimento) -->
+              <button *ngIf="canRenew(m)"
+                      class="btn-primary w-full text-sm mt-1 flex items-center justify-center gap-2"
+                      style="padding:0.6rem;background:var(--accent)"
+                      (click)="openRenewFlow(m)">
+                <span class="material-icons" style="font-size:1rem">autorenew</span>
+                Renovar assinatura mensalista
               </button>
 
               <!-- Cancelar (só se não for já inativo/cancelado) -->
@@ -822,10 +840,60 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
         </div>
       </div>
 
+      <!-- Modal PIX de Renovação -->
+      <div class="modal-overlay" *ngIf="renewPixModal && renewingMensalista">
+        <div class="modal-sheet" style="max-width:380px">
+          <div class="text-center mb-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                 style="background:hsl(36,95%,55%,0.12)">
+              <span class="material-icons" style="font-size:1.75rem;color:var(--accent)">autorenew</span>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1" style="color:var(--foreground)">
+              Renovação gerada!
+            </h3>
+            <p class="text-xs" style="color:var(--muted-foreground)">
+              {{ dayName(renewingMensalista.day_of_week) }} · {{ renewingMensalista.start_hour }}–{{ renewingMensalista.end_hour }}
+              · {{ renewingMensalista.court.establishment.name }}
+            </p>
+          </div>
+
+          <!-- QR Code -->
+          <div class="flex justify-center mb-4" *ngIf="renewingMensalista.pix_qr_code_url">
+            <img [src]="renewingMensalista.pix_qr_code_url"
+                 alt="QR Code PIX Renovação"
+                 style="width:180px;height:180px;border-radius:1rem;border:3px solid var(--accent)">
+          </div>
+
+          <!-- Copia e cola -->
+          <div *ngIf="renewingMensalista.pix_qr_code" class="rounded-xl p-3 mb-4"
+               style="background:var(--muted);word-break:break-all">
+            <p class="text-xs font-medium mb-1.5" style="color:var(--muted-foreground)">Código Pix copia e cola:</p>
+            <p class="text-xs font-mono leading-relaxed" style="color:var(--foreground)">
+              {{ renewingMensalista.pix_qr_code | slice:0:80 }}...
+            </p>
+            <button class="btn-outline w-full mt-2 text-xs flex items-center justify-center gap-1"
+                    style="padding:0.45rem"
+                    (click)="copyPixCode(renewingMensalista!.pix_qr_code)">
+              <span class="material-icons" style="font-size:0.85rem">content_copy</span>
+              Copiar código
+            </button>
+          </div>
+
+          <!-- Indicador de polling -->
+          <div class="flex items-center justify-center gap-2 py-2 rounded-xl mb-4"
+               style="background:var(--muted)">
+            <span class="material-icons text-sm" style="color:var(--primary);animation:spin 1.2s linear infinite">autorenew</span>
+            <span class="text-xs font-medium" style="color:var(--muted-foreground)">Aguardando confirmação do pagamento…</span>
+          </div>
+
+          <button class="btn-back" (click)="closeRenewModal()">Fechar</button>
+        </div>
+      </div>
+
     </div>
   `
 })
-export class MyBookingsComponent implements OnInit {
+export class MyBookingsComponent implements OnInit, OnDestroy {
   activeTab: 'andamento' | 'realizadas' | 'mensalistas' = 'andamento';
 
   // Mensalista state
@@ -835,6 +903,12 @@ export class MyBookingsComponent implements OnInit {
   mensalistaQrModal           = false;
   cancellingMensalista:       MensalistaResult | null = null;
   cancellingMensalistaLoading = false;
+
+  // Renovação
+  renewingMensalista:   MensalistaResult | null = null;  // mensalista em processo de renovação
+  renewPixModal         = false;
+  private renewPollInterval: any = null;
+  private renewPollCount    = 0;
 
   readonly DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -961,6 +1035,91 @@ export class MyBookingsComponent implements OnInit {
     } finally {
       this.cancellingMensalistaLoading = false;
     }
+  }
+
+  // ── Helpers de vigência ──────────────────────────────────────────────────
+
+  /** Dias inteiros restantes até valid_until. Negativo = já expirou. */
+  daysRemaining(m: MensalistaResult): number {
+    if (!m.valid_until) return -1;
+    const diff = new Date(m.valid_until).getTime() - Date.now();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }
+
+  /** Mostra botão de renovar: ATIVO + 0 ou 1 dia restante. */
+  canRenew(m: MensalistaResult): boolean {
+    if (m.status !== 'ATIVO' || m.payment_status === 'PENDENTE') return false;
+    const d = this.daysRemaining(m);
+    return d >= 0 && d <= 1;
+  }
+
+  /** Texto do contador de dias. */
+  daysLabel(m: MensalistaResult): string {
+    const d = this.daysRemaining(m);
+    if (d < 0)  return 'Expirado';
+    if (d === 0) return 'Expira hoje!';
+    if (d === 1) return '1 dia para renovar';
+    return `${d} dias para renovar`;
+  }
+
+  /** Cor do chip de dias (primary = ok, accent = atenção, destructive = urgente). */
+  daysChipClass(m: MensalistaResult): string {
+    const d = this.daysRemaining(m);
+    if (d <= 1)  return 'badge-destructive';
+    if (d <= 5)  return 'badge-accent';
+    return 'badge-primary';
+  }
+
+  // ── Fluxo de renovação ───────────────────────────────────────────────────
+
+  async openRenewFlow(m: MensalistaResult): Promise<void> {
+    try {
+      const updated = await this.mensalistaService.renew(m.id);
+      // Atualiza o item na lista local
+      this.mensalistas = this.mensalistas.map(x => x.id === updated.id ? updated : x);
+      this.renewingMensalista = updated;
+      this.renewPixModal      = true;
+      this.startRenewPolling(updated.id);
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao gerar renovação. Tente novamente.');
+    }
+  }
+
+  closeRenewModal(): void {
+    this.stopRenewPolling();
+    this.renewPixModal      = false;
+    this.renewingMensalista = null;
+  }
+
+  startRenewPolling(id: string): void {
+    this.stopRenewPolling();
+    this.renewPollCount = 0;
+    this.renewPollInterval = setInterval(async () => {
+      this.renewPollCount++;
+      if (this.renewPollCount > 120) { this.stopRenewPolling(); return; }
+      try {
+        const fresh = await this.mensalistaService.getOne(id);
+        this.renewingMensalista = fresh;
+        this.mensalistas = this.mensalistas.map(x => x.id === id ? fresh : x);
+        if (fresh.payment_status === 'PAGO') {
+          this.stopRenewPolling();
+          this.renewPixModal = false;
+          this.renewingMensalista = null;
+          this.toast.show('Renovação confirmada! Mensalista ativo por mais 1 mês ✅');
+        }
+      } catch { /* ignora */ }
+    }, 5000);
+  }
+
+  stopRenewPolling(): void {
+    if (this.renewPollInterval) {
+      clearInterval(this.renewPollInterval);
+      this.renewPollInterval = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopRenewPolling();
   }
 
   async loadBookings(): Promise<void> {

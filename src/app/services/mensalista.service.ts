@@ -67,6 +67,12 @@ export class MensalistaService {
     );
   }
 
+  async renew(id: string): Promise<MensalistaResult> {
+    return firstValueFrom(
+      this.api.post<MensalistaResult>(`/mensalistas/${id}/renovar`, {})
+    );
+  }
+
   async getSlots(courtId: string, dayOfWeek: number): Promise<{ start_hour: string; end_hour: string }[]> {
     const r = await firstValueFrom(
       this.api.get<{ slots: { start_hour: string; end_hour: string }[] }>(
