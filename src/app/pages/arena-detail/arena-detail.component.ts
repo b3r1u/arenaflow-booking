@@ -9,6 +9,7 @@ import { Arena, Booking, Court } from '../../models/models';
 import { BookingService, BookingResult, PaymentGroup, PaymentSplit, CancelPreview } from '../../services/booking.service';
 import { ArenaService } from '../../services/arena.service';
 import { ReviewService, Review } from '../../services/review.service';
+import { MensalistaService, MensalistaResult } from '../../services/mensalista.service';
 
 @Component({
   selector: 'app-arena-detail',
@@ -869,6 +870,29 @@ import { ReviewService, Review } from '../../services/review.service';
 
           </div>
 
+          <!-- ═══ Mensalista CTA (abaixo das avaliações) ═══ -->
+          <div class="mt-6 rounded-2xl px-4 py-4"
+               style="background:hsl(152,69%,40%,0.07);border:1.5px dashed hsl(152,69%,40%,0.3)">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style="background:var(--primary)">
+                <span class="material-icons text-white" style="font-size:1.2rem">repeat</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold" style="color:var(--foreground)">Venha todo {{ mensalistaDay || 'semana' }}</p>
+                <p class="text-xs mt-0.5" style="color:var(--muted-foreground)">
+                  Reserve um horário fixo semanal como mensalista e garanta sua quadra sempre reservada.
+                </p>
+              </div>
+            </div>
+            <button class="w-full mt-3 text-sm font-bold flex items-center justify-center gap-2"
+                    style="padding:0.6rem 1rem;border-radius:0.75rem;border:none;background:var(--primary);color:white;cursor:pointer"
+                    (click)="openMensalistaFlow()">
+              <span class="material-icons" style="font-size:1rem">star</span>
+              Quero ser mensalista
+            </button>
+          </div>
+
         </div>
 
         <!-- ══ STEP 2: Data e horário ══ -->
@@ -1581,6 +1605,178 @@ import { ReviewService, Review } from '../../services/review.service';
 
       </div>
     </div>
+
+    <!-- ══════════ MENSALISTA FLOW MODAL ══════════ -->
+    <div class="modal-overlay" *ngIf="mensalistaModal" (click)="closeMensalistaFlow()">
+      <div class="modal-sheet" style="max-width:420px" (click)="$event.stopPropagation()">
+
+        <!-- ── Etapa 1: Regras ── -->
+        <ng-container *ngIf="mensalistaStep === 'rules'">
+          <div class="text-center mb-5">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                 style="background:var(--primary)">
+              <span class="material-icons text-white" style="font-size:1.75rem">repeat</span>
+            </div>
+            <h3 class="font-heading font-bold text-lg" style="color:var(--foreground)">Como funciona o Mensalista</h3>
+          </div>
+
+          <div class="space-y-3 mb-5">
+            <div class="flex items-start gap-3">
+              <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem;color:var(--primary)">event_repeat</span>
+              <div>
+                <p class="text-sm font-semibold" style="color:var(--foreground)">Horário fixo semanal</p>
+                <p class="text-xs" style="color:var(--muted-foreground)">Você escolhe um dia da semana e horário que repetem toda semana.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem;color:var(--primary)">payments</span>
+              <div>
+                <p class="text-sm font-semibold" style="color:var(--foreground)">Pagamento mensal por PIX</p>
+                <p class="text-xs" style="color:var(--muted-foreground)">O valor é o mesmo por hora da quadra, cobrado para garantir 1 mês de vigência.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem;color:var(--primary)">block</span>
+              <div>
+                <p class="text-sm font-semibold" style="color:var(--foreground)">Slot bloqueado na arena</p>
+                <p class="text-xs" style="color:var(--muted-foreground)">Ninguém mais consegue reservar esse horário enquanto você for mensalista.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem;color:var(--primary)">cancel</span>
+              <div>
+                <p class="text-sm font-semibold" style="color:var(--foreground)">Cancele quando quiser</p>
+                <p class="text-xs" style="color:var(--muted-foreground)">Você pode cancelar a qualquer momento pelo app. Caso já tenha pago, o reembolso é automático.</p>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-primary w-full" (click)="mensalistaStep = 'select'">
+            Escolher dia e horário
+          </button>
+          <button class="btn-back" (click)="closeMensalistaFlow()">Fechar</button>
+        </ng-container>
+
+        <!-- ── Etapa 2: Selecionar quadra, dia, horário ── -->
+        <ng-container *ngIf="mensalistaStep === 'select'">
+          <button class="btn-ghost mb-3 px-0 -ml-1 text-sm" (click)="mensalistaStep = 'rules'">
+            <span class="material-icons" style="font-size:1rem">arrow_back</span> Voltar
+          </button>
+          <h3 class="font-heading font-bold text-base mb-4" style="color:var(--foreground)">Configurar mensalista</h3>
+
+          <!-- Quadra -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">QUADRA</label>
+            <select class="input" [(ngModel)]="mensalistaForm.court_id">
+              <option value="">Selecione a quadra...</option>
+              <option *ngFor="let c of availableCourts" [value]="c.id">{{ c.name }} — R\${{ c.hourly_rate }}/h</option>
+            </select>
+          </div>
+
+          <!-- Dia da semana -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">DIA DA SEMANA</label>
+            <div class="flex gap-1 flex-wrap">
+              <button *ngFor="let d of dayOptions"
+                      type="button"
+                      class="text-xs font-bold px-3 py-1.5 rounded-full border transition-all"
+                      [style]="mensalistaForm.day_of_week === d.value
+                        ? 'background:var(--primary);color:white;border-color:var(--primary)'
+                        : 'background:transparent;color:var(--muted-foreground);border-color:var(--border)'"
+                      (click)="mensalistaForm.day_of_week = d.value">
+                {{ d.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Início -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">INÍCIO</label>
+            <select class="input" [(ngModel)]="mensalistaForm.start_hour" (ngModelChange)="onMensalistaStartChange()">
+              <option value="">Selecione...</option>
+              <option *ngFor="let h of hours" [value]="h">{{ h }}</option>
+            </select>
+          </div>
+
+          <!-- Fim -->
+          <div class="mb-5">
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">FIM</label>
+            <select class="input" [(ngModel)]="mensalistaForm.end_hour">
+              <option value="">Selecione...</option>
+              <option *ngFor="let h of mensalistaEndHours" [value]="h">{{ h }}</option>
+            </select>
+          </div>
+
+          <!-- Resumo do valor -->
+          <div *ngIf="mensalistaForm.start_hour && mensalistaForm.end_hour && mensalistaForm.court_id"
+               class="rounded-xl p-3 mb-4" style="background:var(--muted)">
+            <div class="flex justify-between text-sm">
+              <span style="color:var(--muted-foreground)">Duração</span>
+              <span class="font-semibold" style="color:var(--foreground)">{{ mensalistaDuration }}h</span>
+            </div>
+            <div class="flex justify-between text-sm mt-1">
+              <span style="color:var(--muted-foreground)">Valor mensal</span>
+              <span class="font-heading font-bold" style="color:var(--primary)">R\${{ mensalistaTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <button class="btn-primary w-full"
+                  [disabled]="!mensalistaForm.court_id || mensalistaForm.day_of_week === undefined || !mensalistaForm.start_hour || !mensalistaForm.end_hour || mensalistaCreating"
+                  (click)="confirmMensalista()">
+            {{ mensalistaCreating ? 'Gerando PIX...' : 'Gerar PIX de pagamento' }}
+          </button>
+          <button class="btn-back" [disabled]="mensalistaCreating" (click)="closeMensalistaFlow()">Cancelar</button>
+        </ng-container>
+
+        <!-- ── Etapa 3: PIX gerado ── -->
+        <ng-container *ngIf="mensalistaStep === 'pix' && createdMensalista">
+          <div class="text-center mb-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                 style="background:hsl(152,69%,40%,0.1)">
+              <span class="material-icons" style="font-size:1.75rem;color:var(--primary)">qr_code_2</span>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1" style="color:var(--foreground)">PIX gerado!</h3>
+            <p class="text-xs" style="color:var(--muted-foreground)">
+              Efetue o pagamento para ativar seu horário fixo de
+              <strong>{{ dayName(createdMensalista.day_of_week) }}</strong>
+              das {{ createdMensalista.start_hour }}–{{ createdMensalista.end_hour }}.
+            </p>
+          </div>
+
+          <!-- QR Code -->
+          <div class="flex justify-center mb-4" *ngIf="createdMensalista.pix_qr_code_url">
+            <img [src]="createdMensalista.pix_qr_code_url"
+                 alt="QR Code PIX Mensalista"
+                 style="width:180px;height:180px;border-radius:1rem;border:3px solid var(--primary)">
+          </div>
+
+          <!-- Copia e cola -->
+          <div *ngIf="createdMensalista.pix_qr_code" class="rounded-xl p-3 mb-4"
+               style="background:var(--muted);word-break:break-all">
+            <p class="text-xs font-medium mb-1.5" style="color:var(--muted-foreground)">Código Pix copia e cola:</p>
+            <p class="text-xs font-mono leading-relaxed" style="color:var(--foreground)">
+              {{ createdMensalista.pix_qr_code | slice:0:80 }}...
+            </p>
+            <button class="btn-outline w-full mt-2 text-xs flex items-center justify-center gap-1"
+                    style="padding:0.45rem"
+                    (click)="copyMensalistaPixCode()">
+              <span class="material-icons" style="font-size:0.85rem">content_copy</span>
+              Copiar código
+            </button>
+          </div>
+
+          <p class="text-xs text-center mb-4" style="color:var(--muted-foreground)">
+            Após o pagamento, seu horário será ativado automaticamente. Você pode acompanhar em <strong>Reservas → Mensalistas</strong>.
+          </p>
+
+          <button class="btn-primary w-full" (click)="closeMensalistaFlow()">
+            Entendido
+          </button>
+        </ng-container>
+
+      </div>
+    </div>
+
   `
 })
 export class ArenaDetailComponent implements OnInit, OnDestroy {
@@ -1772,7 +1968,98 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     this.form.total_amount = 0;
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService) {}
+  // ── Mensalista state ──────────────────────────────────────────────────────
+  mensalistaModal   = false;
+  mensalistaStep: 'rules' | 'select' | 'pix' = 'rules';
+  mensalistaCreating = false;
+  createdMensalista: MensalistaResult | null = null;
+  mensalistaForm = {
+    court_id:    '',
+    day_of_week: 1 as number,
+    start_hour:  '',
+    end_hour:    '',
+  };
+
+  readonly dayOptions = [
+    { value: 0, label: 'Dom' },
+    { value: 1, label: 'Seg' },
+    { value: 2, label: 'Ter' },
+    { value: 3, label: 'Qua' },
+    { value: 4, label: 'Qui' },
+    { value: 5, label: 'Sex' },
+    { value: 6, label: 'Sáb' },
+  ];
+
+  get mensalistaDay(): string {
+    return this.dayOptions[this.mensalistaForm.day_of_week]?.label ?? '';
+  }
+
+  get mensalistaEndHours(): string[] {
+    if (!this.mensalistaForm.start_hour) return [];
+    return this.hours.filter(h => h > this.mensalistaForm.start_hour);
+  }
+
+  get mensalistaDuration(): number {
+    if (!this.mensalistaForm.start_hour || !this.mensalistaForm.end_hour) return 0;
+    return parseInt(this.mensalistaForm.end_hour) - parseInt(this.mensalistaForm.start_hour);
+  }
+
+  get mensalistaTotal(): number {
+    const court = this.availableCourts.find(c => c.id === this.mensalistaForm.court_id);
+    return this.mensalistaDuration * (court?.hourly_rate ?? 0);
+  }
+
+  dayName(day: number): string {
+    return this.dayOptions[day]?.label ?? String(day);
+  }
+
+  onMensalistaStartChange(): void {
+    this.mensalistaForm.end_hour = '';
+  }
+
+  openMensalistaFlow(): void {
+    this.mensalistaModal = true;
+    this.mensalistaStep  = 'rules';
+    this.createdMensalista = null;
+    this.mensalistaForm  = { court_id: '', day_of_week: 1, start_hour: '', end_hour: '' };
+  }
+
+  closeMensalistaFlow(): void {
+    this.mensalistaModal = false;
+  }
+
+  async confirmMensalista(): Promise<void> {
+    const { court_id, day_of_week, start_hour, end_hour } = this.mensalistaForm;
+    if (!court_id || day_of_week === undefined || !start_hour || !end_hour) return;
+    if (this.mensalistaCreating) return;
+
+    this.mensalistaCreating = true;
+    try {
+      const profile = this.userProfile.getProfile();
+      const result = await this.mensalistaService.create({
+        court_id,
+        day_of_week,
+        start_hour,
+        end_hour,
+        client_name:  profile.name || this.auth.user()?.displayName || 'Cliente',
+        client_phone: profile.phone || undefined,
+      });
+      this.createdMensalista = result;
+      this.mensalistaStep    = 'pix';
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao criar mensalista. Tente novamente.');
+    } finally {
+      this.mensalistaCreating = false;
+    }
+  }
+
+  copyMensalistaPixCode(): void {
+    if (!this.createdMensalista?.pix_qr_code) return;
+    navigator.clipboard.writeText(this.createdMensalista.pix_qr_code)
+      .then(() => this.toast.show('Código PIX copiado!'));
+  }
+
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService, private mensalistaService: MensalistaService) {}
 
   get arenaAvgRating(): number {
     if (!this.arenaReviews.length) return 0;

@@ -267,6 +267,31 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
 
+/* ─── Modal global ──────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeInModal 0.15s ease;
+}
+.modal-sheet {
+  background: var(--card);
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.5rem;
+  width: 100%;
+  max-width: 420px;
+  animation: scaleInModal 0.18s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@keyframes fadeInModal  { from { opacity: 0 } to { opacity: 1 } }
+@keyframes scaleInModal { from { transform: scale(0.94); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+
 /* ─── Dark mode overrides ────────────────────────────────── */
 [data-theme="dark"] .input,
 [data-theme="dark"] .select {

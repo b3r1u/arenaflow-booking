@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { BookingService, BookingResult, CancelPreview, PaymentGroup, BalancePaymentResult } from '../../services/booking.service';
 import { ReviewService } from '../../services/review.service';
+import { MensalistaService, MensalistaResult } from '../../services/mensalista.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -201,6 +202,14 @@ import { ReviewService } from '../../services/review.service';
         </button>
         <button class="tab-pill" [class.active]="activeTab === 'realizadas'" (click)="activeTab = 'realizadas'">
           Já realizadas
+        </button>
+        <button class="tab-pill" [class.active]="activeTab === 'mensalistas'" (click)="switchToMensalistas()">
+          Mensalistas
+          <span *ngIf="activeMensalistas.length > 0"
+                class="inline-flex items-center justify-center w-4 h-4 rounded-full text-xs ml-1 font-bold"
+                [style]="activeTab === 'mensalistas' ? 'background:rgba(255,255,255,0.25);color:white' : 'background:var(--primary);color:white'">
+            {{ activeMensalistas.length }}
+          </span>
         </button>
       </div>
 
@@ -668,11 +677,166 @@ import { ReviewService } from '../../services/review.service';
         </div>
       </div>
 
+      <!-- ═══════════════ MENSALISTAS ═══════════════ -->
+      <div *ngIf="activeTab === 'mensalistas'">
+
+        <!-- Loading -->
+        <div *ngIf="mensalistaLoading" class="text-center py-16">
+          <p class="text-sm" style="color:var(--muted-foreground)">Carregando mensalistas...</p>
+        </div>
+
+        <!-- Empty state -->
+        <div *ngIf="!mensalistaLoading && mensalistas.length === 0" class="text-center py-16">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+               style="background:var(--muted)">
+            <span class="material-icons" style="font-size:1.8rem;color:var(--border)">repeat</span>
+          </div>
+          <p class="font-semibold mb-1" style="color:var(--foreground)">Nenhum mensalista</p>
+          <p class="text-sm" style="color:var(--muted-foreground)">
+            Ao se tornar mensalista numa arena, seus horários fixos aparecem aqui.
+          </p>
+        </div>
+
+        <!-- Lista -->
+        <div class="space-y-3" *ngIf="!mensalistaLoading && mensalistas.length > 0">
+          <div *ngFor="let m of mensalistas" class="booking-card">
+
+            <!-- Topo colorido -->
+            <div class="px-4 py-3 flex items-center justify-between"
+                 [style]="m.status === 'ATIVO'
+                   ? 'background:linear-gradient(135deg,hsl(152,69%,40%,0.1),hsl(152,69%,40%,0.04));border-bottom:1px solid var(--border)'
+                   : 'background:var(--muted);border-bottom:1px solid var(--border)'">
+              <div>
+                <div class="font-heading font-bold text-sm" style="color:var(--foreground)">
+                  {{ m.court.establishment.name }}
+                </div>
+                <div class="text-xs mt-0.5" style="color:var(--muted-foreground)">
+                  <span class="sport-dot"></span>{{ m.court.name }}
+                </div>
+              </div>
+              <!-- Badge de status -->
+              <span class="badge"
+                    [ngClass]="m.status === 'ATIVO' ? 'badge-primary' : m.payment_status === 'PENDENTE' ? 'badge-accent' : 'badge-muted'">
+                {{ m.status === 'ATIVO' ? 'Ativo' : m.payment_status === 'PENDENTE' ? 'Aguardando PIX' : m.status === 'EXPIRADO' ? 'Expirado' : 'Inativo' }}
+              </span>
+            </div>
+
+            <!-- Infos -->
+            <div class="px-4 py-3">
+              <div class="flex flex-wrap gap-2 mb-3">
+                <span class="info-chip">
+                  <span class="material-icons" style="font-size:0.75rem">calendar_today</span>
+                  {{ dayName(m.day_of_week) }}
+                </span>
+                <span class="info-chip">
+                  <span class="material-icons" style="font-size:0.75rem">schedule</span>
+                  {{ m.start_hour }} – {{ m.end_hour }}
+                </span>
+                <span class="info-chip" *ngIf="m.valid_until">
+                  <span class="material-icons" style="font-size:0.75rem">event</span>
+                  até {{ m.valid_until | date:'dd/MM/yyyy':'UTC' }}
+                </span>
+              </div>
+
+              <!-- PIX pendente -->
+              <button *ngIf="m.payment_status === 'PENDENTE' && m.pix_qr_code_url"
+                      class="btn-primary w-full text-sm mt-1 flex items-center justify-center gap-2"
+                      style="padding:0.6rem"
+                      (click)="openMensalistaQr(m)">
+                <span class="material-icons" style="font-size:1rem">qr_code_2</span>
+                Ver QR Code PIX
+              </button>
+
+              <!-- Cancelar (só se não for já inativo/cancelado) -->
+              <button *ngIf="m.status !== 'INATIVO' || m.payment_status !== 'CANCELADO'"
+                      class="btn-cancel mt-2"
+                      (click)="openCancelMensalistaModal(m)">
+                <span class="material-icons" style="font-size:0.9rem">cancel</span>
+                Cancelar mensalista
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal QR Code Mensalista -->
+      <div class="modal-overlay" *ngIf="mensalistaQrModal && selectedMensalista">
+        <div class="modal-sheet" style="max-width:380px">
+          <h3 class="font-heading font-bold text-lg mb-1" style="color:var(--foreground)">
+            Pagamento Mensalista
+          </h3>
+          <p class="text-xs mb-4" style="color:var(--muted-foreground)">
+            {{ selectedMensalista.court.establishment.name }} · {{ dayName(selectedMensalista.day_of_week) }} {{ selectedMensalista.start_hour }}–{{ selectedMensalista.end_hour }}
+          </p>
+
+          <!-- QR Code -->
+          <div class="flex justify-center mb-4" *ngIf="selectedMensalista.pix_qr_code_url">
+            <img [src]="selectedMensalista.pix_qr_code_url"
+                 alt="QR Code PIX"
+                 style="width:180px;height:180px;border-radius:1rem;border:3px solid var(--primary)">
+          </div>
+
+          <!-- Copia e cola -->
+          <div *ngIf="selectedMensalista.pix_qr_code" class="rounded-xl p-3 mb-4"
+               style="background:var(--muted);word-break:break-all">
+            <p class="text-xs font-medium mb-1.5" style="color:var(--muted-foreground)">Código Pix copia e cola:</p>
+            <p class="text-xs font-mono leading-relaxed" style="color:var(--foreground)">
+              {{ selectedMensalista.pix_qr_code | slice:0:80 }}...
+            </p>
+            <button class="btn-outline w-full mt-2 text-xs flex items-center justify-center gap-1"
+                    style="padding:0.45rem"
+                    (click)="copyPixCode(selectedMensalista!.pix_qr_code)">
+              <span class="material-icons" style="font-size:0.85rem">content_copy</span>
+              Copiar código
+            </button>
+          </div>
+
+          <p class="text-xs text-center mb-4" style="color:var(--muted-foreground)">
+            Após o pagamento, seu horário será ativado automaticamente.
+          </p>
+
+          <button class="btn-back" (click)="closeMensalistaQr()">Fechar</button>
+        </div>
+      </div>
+
+      <!-- Modal confirmação cancelar mensalista -->
+      <div class="modal-overlay" *ngIf="cancellingMensalista">
+        <div class="modal-sheet">
+          <h3 class="font-heading font-bold text-lg mb-2" style="color:var(--foreground)">
+            Cancelar mensalista?
+          </h3>
+          <p class="text-sm mb-4" style="color:var(--muted-foreground)">
+            O horário fixo de <strong>{{ dayName(cancellingMensalista.day_of_week) }}</strong>
+            das <strong>{{ cancellingMensalista.start_hour }}–{{ cancellingMensalista.end_hour }}</strong>
+            será liberado. Se já pagou, o reembolso será solicitado automaticamente.
+          </p>
+
+          <button class="btn-confirm-cancel"
+                  [disabled]="cancellingMensalistaLoading"
+                  (click)="confirmCancelMensalista()">
+            {{ cancellingMensalistaLoading ? 'Cancelando...' : 'Confirmar cancelamento' }}
+          </button>
+          <button class="btn-back" [disabled]="cancellingMensalistaLoading" (click)="closeCancelMensalistaModal()">
+            Voltar
+          </button>
+        </div>
+      </div>
+
     </div>
   `
 })
 export class MyBookingsComponent implements OnInit {
-  activeTab: 'andamento' | 'realizadas' = 'andamento';
+  activeTab: 'andamento' | 'realizadas' | 'mensalistas' = 'andamento';
+
+  // Mensalista state
+  mensalistas:                MensalistaResult[] = [];
+  mensalistaLoading           = false;
+  selectedMensalista:         MensalistaResult | null = null;
+  mensalistaQrModal           = false;
+  cancellingMensalista:       MensalistaResult | null = null;
+  cancellingMensalistaLoading = false;
+
+  readonly DAY_NAMES = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   // Cancel state
   cancellingBooking:   BookingResult | null   = null;
@@ -714,6 +878,7 @@ export class MyBookingsComponent implements OnInit {
     private toast: ToastService,
     private bookingService: BookingService,
     private reviewService: ReviewService,
+    private mensalistaService: MensalistaService,
   ) {}
 
   /** Etiqueta do botão cancelar (depende do cancel preview carregado). */
@@ -733,6 +898,69 @@ export class MyBookingsComponent implements OnInit {
     this.reviewService.getMyReviewedBookingIds()
       .then(ids => ids.forEach(id => this.reviewedBookingIds.add(id)))
       .catch(() => {});
+  }
+
+  switchToMensalistas(): void {
+    this.activeTab = 'mensalistas';
+    if (this.mensalistas.length === 0 && !this.mensalistaLoading) {
+      this.loadMensalistas();
+    }
+  }
+
+  async loadMensalistas(): Promise<void> {
+    this.mensalistaLoading = true;
+    try {
+      this.mensalistas = await this.mensalistaService.listMe();
+    } catch {
+      // silencioso
+    } finally {
+      this.mensalistaLoading = false;
+    }
+  }
+
+  get activeMensalistas(): MensalistaResult[] {
+    return this.mensalistas.filter(m => m.status === 'ATIVO');
+  }
+
+  dayName(day: number): string {
+    return this.DAY_NAMES[day] ?? String(day);
+  }
+
+  openMensalistaQr(m: MensalistaResult): void {
+    this.selectedMensalista = m;
+    this.mensalistaQrModal  = true;
+  }
+
+  closeMensalistaQr(): void {
+    this.mensalistaQrModal  = false;
+    this.selectedMensalista = null;
+  }
+
+  openCancelMensalistaModal(m: MensalistaResult): void {
+    this.cancellingMensalista = m;
+  }
+
+  closeCancelMensalistaModal(): void {
+    this.cancellingMensalista = null;
+    this.cancellingMensalistaLoading = false;
+  }
+
+  async confirmCancelMensalista(): Promise<void> {
+    if (!this.cancellingMensalista || this.cancellingMensalistaLoading) return;
+    const id = this.cancellingMensalista.id;
+    this.cancellingMensalistaLoading = true;
+    try {
+      await this.mensalistaService.cancel(id);
+      this.mensalistas = this.mensalistas.map(m =>
+        m.id === id ? { ...m, status: 'INATIVO', payment_status: 'CANCELADO' } : m
+      );
+      this.toast.show('Mensalista cancelado com sucesso.');
+      this.closeCancelMensalistaModal();
+    } catch (err: any) {
+      this.toast.show(err?.error?.error || 'Erro ao cancelar. Tente novamente.');
+    } finally {
+      this.cancellingMensalistaLoading = false;
+    }
   }
 
   async loadBookings(): Promise<void> {
@@ -769,8 +997,8 @@ export class MyBookingsComponent implements OnInit {
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
-  private get isCancelled(): (status: string) => boolean {
-    return (s) => ['cancelado', 'estornado', 'chargedback'].includes(s);
+  isCancelled(status: string): boolean {
+    return ['cancelado', 'estornado', 'chargedback'].includes(status);
   }
 
   get jaRealizadas(): BookingResult[] {
