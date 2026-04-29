@@ -1769,8 +1769,59 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
             Após o pagamento, seu horário será ativado automaticamente. Você pode acompanhar em <strong>Reservas → Mensalistas</strong>.
           </p>
 
+          <!-- Indicador de aguardando pagamento -->
+          <div class="flex items-center justify-center gap-2 py-2 rounded-xl mb-4"
+               style="background:var(--muted)">
+            <span class="material-icons text-sm animate-spin" style="color:var(--primary);animation:spin 1.2s linear infinite">autorenew</span>
+            <span class="text-xs font-medium" style="color:var(--muted-foreground)">Aguardando confirmação do pagamento…</span>
+          </div>
+
+          <button class="btn-outline w-full text-sm" (click)="closeMensalistaFlow()">
+            Fechar — acompanhar em Reservas
+          </button>
+        </ng-container>
+
+        <!-- ── Etapa 4: Pagamento confirmado ── -->
+        <ng-container *ngIf="mensalistaStep === 'confirmed' && createdMensalista">
+          <div class="text-center mb-5">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+                 style="background:hsl(152,69%,40%,0.12)">
+              <span class="material-icons" style="font-size:2rem;color:var(--primary)">check_circle</span>
+            </div>
+            <h3 class="font-heading font-bold text-xl mb-1" style="color:var(--foreground)">Mensalista ativado!</h3>
+            <p class="text-sm" style="color:var(--muted-foreground)">
+              Seu horário fixo foi confirmado e está garantido toda semana.
+            </p>
+          </div>
+
+          <!-- Resumo -->
+          <div class="rounded-xl p-4 mb-5 space-y-2" style="background:var(--muted)">
+            <div class="flex justify-between text-sm">
+              <span style="color:var(--muted-foreground)">Quadra</span>
+              <span class="font-medium" style="color:var(--foreground)">{{ createdMensalista.court.name }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span style="color:var(--muted-foreground)">Dia</span>
+              <span class="font-medium" style="color:var(--foreground)">{{ dayName(createdMensalista.day_of_week) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span style="color:var(--muted-foreground)">Horário</span>
+              <span class="font-medium" style="color:var(--foreground)">{{ createdMensalista.start_hour }}–{{ createdMensalista.end_hour }}</span>
+            </div>
+            <div class="flex justify-between text-sm" *ngIf="createdMensalista.valid_until">
+              <span style="color:var(--muted-foreground)">Válido até</span>
+              <span class="font-semibold" style="color:var(--primary)">
+                {{ createdMensalista.valid_until | date:'dd/MM/yyyy' }}
+              </span>
+            </div>
+          </div>
+
+          <p class="text-xs text-center mb-4" style="color:var(--muted-foreground)">
+            Acompanhe e gerencie em <strong>Reservas → Mensalistas</strong>.
+          </p>
+
           <button class="btn-primary w-full" (click)="closeMensalistaFlow()">
-            Entendido
+            Concluir
           </button>
         </ng-container>
 
@@ -1970,9 +2021,11 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   // ── Mensalista state ──────────────────────────────────────────────────────
   mensalistaModal   = false;
-  mensalistaStep: 'rules' | 'select' | 'pix' = 'rules';
+  mensalistaStep: 'rules' | 'select' | 'pix' | 'confirmed' = 'rules';
   mensalistaCreating = false;
   createdMensalista: MensalistaResult | null = null;
+  private mensalistaPollInterval: any = null;
+  private mensalistaPollCount   = 0;
   mensalistaForm = {
     court_id:    '',
     day_of_week: 1 as number,
@@ -2025,6 +2078,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   }
 
   closeMensalistaFlow(): void {
+    this.stopMensalistaPolling();
     this.mensalistaModal = false;
   }
 
@@ -2046,6 +2100,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
       });
       this.createdMensalista = result;
       this.mensalistaStep    = 'pix';
+      this.startMensalistaPolling(result.id);
     } catch (err: any) {
       this.toast.show(err?.error?.error || 'Erro ao criar mensalista. Tente novamente.');
     } finally {
@@ -2059,6 +2114,35 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
       .then(() => this.toast.show('Código PIX copiado!'));
   }
 
+  startMensalistaPolling(mensalistaId: string): void {
+    this.stopMensalistaPolling();
+    this.mensalistaPollCount = 0;
+    this.mensalistaPollInterval = setInterval(async () => {
+      this.mensalistaPollCount++;
+      // Timeout após 10 min (120 polls × 5s)
+      if (this.mensalistaPollCount > 120) {
+        this.stopMensalistaPolling();
+        return;
+      }
+      try {
+        const fresh = await this.mensalistaService.getOne(mensalistaId);
+        this.createdMensalista = fresh;
+        if (fresh.payment_status === 'PAGO') {
+          this.stopMensalistaPolling();
+          this.mensalistaStep = 'confirmed';
+          this.toast.show('Pagamento confirmado! Mensalista ativado ✅');
+        }
+      } catch { /* ignora — mantém tela atual */ }
+    }, 5000);
+  }
+
+  stopMensalistaPolling(): void {
+    if (this.mensalistaPollInterval) {
+      clearInterval(this.mensalistaPollInterval);
+      this.mensalistaPollInterval = null;
+    }
+  }
+
   constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService, private mensalistaService: MensalistaService) {}
 
   get arenaAvgRating(): number {
@@ -2069,6 +2153,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPaymentPolling();
+    this.stopMensalistaPolling();
     this.stopReviewCarousel();
   }
 
