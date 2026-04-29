@@ -572,8 +572,8 @@ import { ReviewService } from '../../services/review.service';
                   {{ getCourtName(b) }}
                 </div>
               </div>
-              <span *ngIf="b.payment_status !== 'cancelado'" class="badge badge-primary">concluída</span>
-              <span *ngIf="b.payment_status === 'cancelado'" class="badge badge-destructive">cancelada</span>
+              <span *ngIf="!isCancelled(b.payment_status)" class="badge badge-primary">concluída</span>
+              <span *ngIf="isCancelled(b.payment_status)" class="badge badge-destructive">cancelada</span>
             </div>
 
             <div class="px-4 py-3">
@@ -597,7 +597,7 @@ import { ReviewService } from '../../services/review.service';
               </div>
 
               <!-- Avaliar arena -->
-              <ng-container *ngIf="b.payment_status !== 'cancelado'">
+              <ng-container *ngIf="!isCancelled(b.payment_status)">
                 <button *ngIf="!isReviewed(b)" class="btn-review" (click)="openReviewModal(b)">
                   <span class="material-icons" style="font-size:0.9rem">star_border</span>
                   Avaliar arena
@@ -769,11 +769,15 @@ export class MyBookingsComponent implements OnInit {
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
+  private get isCancelled(): (status: string) => boolean {
+    return (s) => ['cancelado', 'estornado', 'chargedback'].includes(s);
+  }
+
   get jaRealizadas(): BookingResult[] {
     const today = new Date().toISOString().split('T')[0];
     return this.userBookings
       .filter(b =>
-        b.payment_status !== 'cancelado' &&
+        !this.isCancelled(b.payment_status) &&
         (b.payment_status === 'pago' || b.date < today)
       )
       .sort((a, b) => b.date.localeCompare(a.date));
