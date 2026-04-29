@@ -334,6 +334,71 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
       padding: 0.25rem 0 0.5rem;
     }
     .reviews-carousel::-webkit-scrollbar { display: none; }
+    /* ── Mensalista CTA card ── */
+    .mensalista-cta {
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      background: linear-gradient(135deg, hsl(152,69%,40%,0.08) 0%, hsl(152,69%,40%,0.03) 100%);
+      border: 1.5px solid hsl(152,69%,40%,0.25);
+      position: relative;
+      overflow: hidden;
+      animation: cta-glow 3.5s ease-in-out infinite;
+    }
+    .mensalista-cta::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 55%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, hsl(152,69%,40%,0.07), transparent);
+      animation: cta-shimmer 4.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes cta-glow {
+      0%, 100% { box-shadow: 0 2px 14px hsl(152,69%,40%,0.07); border-color: hsl(152,69%,40%,0.22); }
+      50%       { box-shadow: 0 4px 28px hsl(152,69%,40%,0.18); border-color: hsl(152,69%,40%,0.42); }
+    }
+    @keyframes cta-shimmer {
+      0%        { left: -100%; }
+      60%, 100% { left: 150%; }
+    }
+    .cta-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.875rem;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px hsl(152,69%,40%,0.35);
+      animation: cta-float 3.5s ease-in-out infinite;
+    }
+    @keyframes cta-float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-4px); }
+    }
+    .cta-bullet {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .cta-price-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.28rem 0.7rem;
+      border-radius: 9999px;
+      background: hsl(36,95%,55%,0.12);
+      border: 1px solid hsl(36,95%,55%,0.3);
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: hsl(36,68%,36%);
+    }
+    [data-theme="dark"] .cta-price-pill { color: hsl(36,90%,65%); }
+
     /* ── Carrossel de avaliações ── */
     .review-track {
       position: relative;
@@ -821,6 +886,53 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
             <p class="text-sm" style="color:var(--muted-foreground)">Tente novamente mais tarde</p>
           </div>
 
+          <!-- ═══ Mensalista CTA ═══ -->
+          <div class="mensalista-cta mt-5">
+
+            <!-- Topo: ícone + título -->
+            <div class="flex items-start gap-3 mb-3">
+              <div class="cta-icon">
+                <span class="material-icons text-white" style="font-size:1.35rem">calendar_month</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-heading font-bold text-base leading-tight" style="color:var(--foreground)">
+                  Seu jogo garantido toda semana ⚽
+                </p>
+                <p class="text-xs mt-1" style="color:var(--muted-foreground)">
+                  Escolha o dia, o horário e jogue com sua galera sem disputa por vaga.
+                </p>
+              </div>
+            </div>
+
+            <!-- Destaques -->
+            <div class="space-y-1.5 mb-3 pl-1">
+              <div class="cta-bullet">
+                <span class="material-icons" style="font-size:0.9rem;color:var(--primary)">check_circle</span>
+                Horário reservado por 1 mês
+              </div>
+              <div class="cta-bullet">
+                <span class="material-icons" style="font-size:0.9rem;color:var(--primary)">check_circle</span>
+                Ideal para grupos fixos
+              </div>
+              <div class="cta-bullet">
+                <span class="material-icons" style="font-size:0.9rem;color:var(--primary)">check_circle</span>
+                Mais organização, menos dor de cabeça
+              </div>
+            </div>
+
+            <!-- Chip de economia -->
+            <div class="mb-3">
+              <span class="cta-price-pill">💸 Economize com o plano mensal</span>
+            </div>
+
+            <!-- Botão -->
+            <button class="btn-primary w-full" (click)="openMensalistaFlow()">
+              <span class="material-icons" style="font-size:1rem">repeat</span>
+              Quero ser mensalista
+            </button>
+
+          </div>
+
           <!-- ═══ AVALIAÇÕES (carrossel — abaixo das quadras) ═══ -->
           <div *ngIf="arenaReviews.length > 0" class="mt-6 pb-2">
 
@@ -884,28 +996,6 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
 
           </div>
 
-          <!-- ═══ Mensalista CTA (abaixo das avaliações) ═══ -->
-          <div class="mt-6 rounded-2xl px-4 py-4"
-               style="background:hsl(152,69%,40%,0.07);border:1.5px dashed hsl(152,69%,40%,0.3)">
-            <div class="flex items-start gap-3">
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                   style="background:var(--primary)">
-                <span class="material-icons text-white" style="font-size:1.2rem">repeat</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold" style="color:var(--foreground)">Venha todo {{ mensalistaDay || 'semana' }}</p>
-                <p class="text-xs mt-0.5" style="color:var(--muted-foreground)">
-                  Reserve um horário fixo semanal como mensalista e garanta sua quadra sempre reservada.
-                </p>
-              </div>
-            </div>
-            <button class="w-full mt-3 text-sm font-bold flex items-center justify-center gap-2"
-                    style="padding:0.6rem 1rem;border-radius:0.75rem;border:none;background:var(--primary);color:white;cursor:pointer"
-                    (click)="openMensalistaFlow()">
-              <span class="material-icons" style="font-size:1rem">star</span>
-              Quero ser mensalista
-            </button>
-          </div>
 
         </div>
 
