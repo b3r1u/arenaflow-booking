@@ -27,6 +27,7 @@ export interface Court {
   sport_type: SportType;
   status: 'disponível' | 'ocupada' | 'bloqueada';
   hourly_rate: number;
+  mensalista_rate?: number | null;
   description?: string;
 }
 

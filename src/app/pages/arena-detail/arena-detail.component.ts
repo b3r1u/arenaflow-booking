@@ -1683,7 +1683,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
             <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">QUADRA</label>
             <select class="input" [(ngModel)]="mensalistaForm.court_id" (ngModelChange)="loadMensalistaSlots()">
               <option value="">Selecione a quadra...</option>
-              <option *ngFor="let c of availableCourts" [value]="c.id">{{ c.name }} — R\${{ c.hourly_rate }}/h</option>
+              <option *ngFor="let c of availableCourts" [value]="c.id">{{ c.name }} — {{ mensalistaRateLabel(c) }}</option>
             </select>
           </div>
 
@@ -2117,7 +2117,16 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   get mensalistaTotal(): number {
     const court = this.availableCourts.find(c => c.id === this.mensalistaForm.court_id);
-    return this.mensalistaDuration * (court?.hourly_rate ?? 0);
+    const rate  = court?.mensalista_rate ?? court?.hourly_rate ?? 0;
+    return this.mensalistaDuration * rate;
+  }
+
+  /** Texto do preço a exibir para o plano mensalista da quadra. */
+  mensalistaRateLabel(court: Court): string {
+    if (court.mensalista_rate) {
+      return `R\$${court.mensalista_rate}/h mensalista`;
+    }
+    return `R\$${court.hourly_rate}/h`;
   }
 
   dayName(day: number): string {
