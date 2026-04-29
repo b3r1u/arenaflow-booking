@@ -760,14 +760,22 @@ export class MyBookingsComponent implements OnInit {
   }
 
   get emAndamento(): BookingResult[] {
+    const today = new Date().toISOString().split('T')[0];
     return this.userBookings
-      .filter(b => ['pendente', 'parcial', 'sinal_pago'].includes(b.payment_status))
+      .filter(b =>
+        b.date >= today &&
+        ['pendente', 'sinal_pago', 'parcial'].includes(b.payment_status)
+      )
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
   get jaRealizadas(): BookingResult[] {
+    const today = new Date().toISOString().split('T')[0];
     return this.userBookings
-      .filter(b => b.payment_status === 'pago' || b.payment_status === 'cancelado')
+      .filter(b =>
+        b.payment_status !== 'cancelado' &&
+        (b.payment_status === 'pago' || b.date < today)
+      )
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
@@ -908,14 +916,14 @@ export class MyBookingsComponent implements OnInit {
 
   async confirmCancel(): Promise<void> {
     if (!this.cancellingBooking || this.cancelling) return;
+    const cancelledId = this.cancellingBooking.id;
     this.cancelling = true;
     try {
-      await this.bookingService.cancelBooking(this.cancellingBooking.id);
+      await this.bookingService.cancelBooking(cancelledId);
       this.toast.show('Reserva cancelada com sucesso.');
-      this.closeCancelModal();
       // Atualiza lista localmente: marca como cancelado sem recarregar tudo
       this.bookings = this.bookings.map(bk =>
-        bk.id === this.cancellingBooking?.id ? { ...bk, payment_status: 'cancelado' } : bk
+        bk.id === cancelledId ? { ...bk, payment_status: 'cancelado' } : bk
       );
       this.closeCancelModal();
     } catch (err: any) {

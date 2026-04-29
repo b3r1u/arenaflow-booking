@@ -1234,12 +1234,7 @@ import { ReviewService, Review } from '../../services/review.service';
               </button>
             </div>
 
-            <!-- Avaliar arena -->
-            <button class="btn-primary w-full py-3 mb-3" [class.mt-3]="!paymentConfirmed" (click)="goToReview()">
-              <span class="material-icons" style="font-size:1rem">star</span>
-              Avaliar esta arena
-            </button>
-            <div class="flex gap-2">
+            <div class="flex gap-2 mt-3">
               <button class="btn-outline flex-1" (click)="resetToArena()">
                 <span class="material-icons" style="font-size:1rem">add</span>
                 Nova reserva aqui
