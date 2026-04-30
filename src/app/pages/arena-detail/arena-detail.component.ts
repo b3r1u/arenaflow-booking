@@ -2365,7 +2365,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   get mensalistaTotal(): number {
     const court = this.availableCourts.find(c => c.id === this.mensalistaForm.court_id);
     const rate  = court?.mensalista_rate ?? court?.hourly_rate ?? 0;
-    return this.mensalistaDuration * rate;
+    return this.mensalistaDuration * rate * 4;
   }
 
   /** Ícone Material para o tipo de esporte da quadra. */

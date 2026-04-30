@@ -1021,7 +1021,7 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
   mensalistaTotal(m: MensalistaResult): string {
     const rate     = m.court.mensalista_rate ?? m.court.hourly_rate ?? 0;
     const duration = parseInt(m.end_hour) - parseInt(m.start_hour);
-    return (duration * rate).toFixed(2).replace('.', ',');
+    return (duration * rate * 4).toFixed(2).replace('.', ',');
   }
 
   dayName(day: number): string {
