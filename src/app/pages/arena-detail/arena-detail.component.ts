@@ -1963,11 +1963,66 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           </div>
 
           <button class="btn-primary w-full"
-                  [disabled]="!mensalistaForm.court_id || mensalistaForm.day_of_week === undefined || !mensalistaForm.start_hour || !mensalistaForm.end_hour || mensalistaCreating"
-                  (click)="confirmMensalista()">
-            {{ mensalistaCreating ? 'Gerando PIX...' : 'Gerar PIX de pagamento' }}
+                  [disabled]="!mensalistaForm.court_id || mensalistaForm.day_of_week === undefined || !mensalistaForm.start_hour || !mensalistaForm.end_hour"
+                  (click)="mensalistaStep = 'disclaimer'">
+            Gerar PIX de pagamento
           </button>
-          <button class="btn-back-modal" [disabled]="mensalistaCreating" (click)="closeMensalistaFlow()">Cancelar</button>
+          <button class="btn-back-modal" (click)="closeMensalistaFlow()">Cancelar</button>
+        </ng-container>
+
+        <!-- ── Etapa 2.5: Aviso de não estorno ── -->
+        <ng-container *ngIf="mensalistaStep === 'disclaimer'">
+          <div class="text-center mb-5">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                 style="background:hsl(36,95%,55%,0.12)">
+              <span class="material-icons" style="font-size:1.6rem;color:hsl(36,80%,40%)">gavel</span>
+            </div>
+            <h3 class="font-heading font-bold text-lg mb-1" style="color:var(--foreground)">Antes de prosseguir</h3>
+            <p class="text-sm" style="color:var(--muted-foreground)">Leia com atenção antes de gerar o PIX</p>
+          </div>
+
+          <!-- Aviso -->
+          <div class="rounded-xl p-4 mb-5 text-sm leading-relaxed"
+               style="background:hsl(36,95%,55%,0.08);border:1px solid hsl(36,95%,55%,0.3);color:hsl(36,55%,30%)">
+            <div class="flex items-start gap-2.5">
+              <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem">warning_amber</span>
+              <div>
+                <p class="font-semibold mb-1.5">Pagamento sem direito a estorno</p>
+                <p>O valor pago pela mensalidade <strong>não poderá ser estornado</strong> após a confirmação do pagamento. Ao seguir, você concorda com esta condição.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumo do plano selecionado -->
+          <div class="rounded-xl p-4 mb-5 space-y-2 text-sm" style="background:var(--muted)">
+            <div class="flex justify-between">
+              <span style="color:var(--muted-foreground)">Quadra</span>
+              <span class="font-medium" style="color:var(--foreground)">{{ courtName(mensalistaForm.court_id) }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color:var(--muted-foreground)">Horário</span>
+              <span class="font-medium" style="color:var(--foreground)">{{ mensalistaForm.start_hour }} – {{ mensalistaForm.end_hour }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span style="color:var(--muted-foreground)">Valor mensal</span>
+              <span class="font-heading font-bold" style="color:var(--primary)">R\${{ mensalistaTotal | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <button class="btn-primary w-full flex items-center justify-center gap-2"
+                  [disabled]="mensalistaCreating"
+                  (click)="confirmMensalista()">
+            <span class="material-icons" style="font-size:1rem"
+                  [style.animation]="mensalistaCreating ? 'spin 1s linear infinite' : 'none'">
+              {{ mensalistaCreating ? 'refresh' : 'check_circle' }}
+            </span>
+            {{ mensalistaCreating ? 'Gerando PIX...' : 'Concordo, seguir para pagamento' }}
+          </button>
+          <button class="btn-back-modal"
+                  [disabled]="mensalistaCreating"
+                  (click)="closeMensalistaFlow()">
+            Não concordo, cancelar plano
+          </button>
         </ng-container>
 
         <!-- ── Etapa 3: PIX gerado ── -->
@@ -2267,7 +2322,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   // ── Mensalista state ──────────────────────────────────────────────────────
   mensalistaModal   = false;
-  mensalistaStep: 'rules' | 'select' | 'pix' | 'confirmed' = 'rules';
+  mensalistaStep: 'rules' | 'select' | 'disclaimer' | 'pix' | 'confirmed' = 'rules';
   mensalistaCreating   = false;
   mensalistaSlotsLoading = false;
   mensalistaSlotStep: 'start' | 'end' = 'start';
@@ -2429,6 +2484,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   closeMensalistaFlow(): void {
     this.stopMensalistaPolling();
     this.mensalistaModal = false;
+  }
+
+  courtName(courtId: string): string {
+    return this.courts.find(c => c.id === courtId)?.name ?? 'Quadra';
   }
 
   async confirmMensalista(): Promise<void> {
