@@ -778,13 +778,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
                 Renovar assinatura mensalista
               </button>
 
-              <!-- Cancelar (só se não for já inativo/cancelado) -->
-              <button *ngIf="m.status !== 'INATIVO' || m.payment_status !== 'CANCELADO'"
-                      class="btn-cancel mt-2"
-                      (click)="openCancelMensalistaModal(m)">
-                <span class="material-icons" style="font-size:0.9rem">cancel</span>
-                Cancelar mensalista
-              </button>
+              <!-- Cancelamento não permitido: cliente concordou com a política de não-estorno -->
             </div>
           </div>
         </div>
@@ -830,28 +824,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
         </div>
       </div>
 
-      <!-- Modal confirmação cancelar mensalista -->
-      <div class="modal-overlay" *ngIf="cancellingMensalista">
-        <div class="modal-sheet">
-          <h3 class="font-heading font-bold text-lg mb-2" style="color:var(--foreground)">
-            Cancelar mensalista?
-          </h3>
-          <p class="text-sm mb-4" style="color:var(--muted-foreground)">
-            O horário fixo de <strong>{{ dayName(cancellingMensalista.day_of_week) }}</strong>
-            das <strong>{{ cancellingMensalista.start_hour }}–{{ cancellingMensalista.end_hour }}</strong>
-            será liberado. Se já pagou, o reembolso será solicitado automaticamente.
-          </p>
-
-          <button class="btn-confirm-cancel"
-                  [disabled]="cancellingMensalistaLoading"
-                  (click)="confirmCancelMensalista()">
-            {{ cancellingMensalistaLoading ? 'Cancelando...' : 'Confirmar cancelamento' }}
-          </button>
-          <button class="btn-back" [disabled]="cancellingMensalistaLoading" (click)="closeCancelMensalistaModal()">
-            Voltar
-          </button>
-        </div>
-      </div>
+      <!-- Modal cancelamento mensalista removido: política de não-estorno vigente -->
 
       <!-- Modal PIX de Renovação -->
       <div class="modal-overlay" *ngIf="renewPixModal && renewingMensalista">

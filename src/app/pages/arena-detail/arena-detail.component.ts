@@ -1839,17 +1839,22 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           </button>
           <h3 class="font-heading font-bold text-base mb-4" style="color:var(--foreground)">Configurar mensalista</h3>
 
-          <!-- Nome do grupo -->
+          <!-- Nome do grupo (obrigatório) -->
           <div class="mb-4">
-            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">NOME DO GRUPO</label>
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">
+              NOME DO GRUPO <span style="color:hsl(0,72%,51%)">*</span>
+            </label>
             <div style="position:relative">
               <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">group</span>
               <input class="input" style="padding-left:2.25rem"
                      [(ngModel)]="mensalistaForm.group_name"
-                     placeholder="Ex: Grupo da Manhã, Turma do Futevôlei..."
+                     placeholder="Ex: Grupo da Manhã, Rapazeada FTV..."
                      maxlength="60">
             </div>
-            <p class="text-xs mt-1" style="color:var(--muted-foreground)">Opcional — facilita identificar seu grupo no histórico.</p>
+            <p class="text-xs mt-1"
+               [style.color]="mensalistaForm.group_name.trim() ? 'var(--muted-foreground)' : 'hsl(0,72%,51%)'">
+              {{ mensalistaForm.group_name.trim() ? 'Será exibido na sua lista de mensalistas.' : 'Obrigatório — dê um nome para o seu grupo.' }}
+            </p>
           </div>
 
           <!-- Quadra -->
@@ -1963,7 +1968,7 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           </div>
 
           <button class="btn-primary w-full"
-                  [disabled]="!mensalistaForm.court_id || mensalistaForm.day_of_week === undefined || !mensalistaForm.start_hour || !mensalistaForm.end_hour"
+                  [disabled]="!mensalistaForm.group_name.trim() || !mensalistaForm.court_id || mensalistaForm.day_of_week === undefined || !mensalistaForm.start_hour || !mensalistaForm.end_hour"
                   (click)="mensalistaStep = 'disclaimer'">
             Gerar PIX de pagamento
           </button>
@@ -2492,7 +2497,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   async confirmMensalista(): Promise<void> {
     const { court_id, group_name, day_of_week, start_hour, end_hour } = this.mensalistaForm;
-    if (!court_id || day_of_week === undefined || !start_hour || !end_hour) return;
+    if (!group_name.trim() || !court_id || day_of_week === undefined || !start_hour || !end_hour) return;
     if (this.mensalistaCreating) return;
 
     this.mensalistaCreating = true;
