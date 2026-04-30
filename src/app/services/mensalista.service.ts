@@ -7,6 +7,7 @@ export interface CreateMensalistaDto {
   client_name:      string;
   client_phone?:    string;
   client_document?: string;  // CPF — usado para gerar o PIX no Pagar.me
+  group_name?:      string;  // nome do grupo dado pelo cliente
   day_of_week:      number;  // 0=Dom, 1=Seg, ... 6=Sáb
   start_hour:       string;  // HH:00
   end_hour:         string;  // HH:00
@@ -18,6 +19,7 @@ export interface MensalistaResult {
   user_uid:         string;
   client_name:      string;
   client_phone:     string | null;
+  group_name:       string | null;
   day_of_week:      number;
   start_hour:       string;
   end_hour:         string;

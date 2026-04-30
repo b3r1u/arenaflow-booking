@@ -1839,6 +1839,19 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           </button>
           <h3 class="font-heading font-bold text-base mb-4" style="color:var(--foreground)">Configurar mensalista</h3>
 
+          <!-- Nome do grupo -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold mb-1.5" style="color:var(--muted-foreground)">NOME DO GRUPO</label>
+            <div style="position:relative">
+              <span class="material-icons" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);font-size:1rem;color:var(--muted-foreground);pointer-events:none">group</span>
+              <input class="input" style="padding-left:2.25rem"
+                     [(ngModel)]="mensalistaForm.group_name"
+                     placeholder="Ex: Grupo da Manhã, Turma do Futevôlei..."
+                     maxlength="60">
+            </div>
+            <p class="text-xs mt-1" style="color:var(--muted-foreground)">Opcional — facilita identificar seu grupo no histórico.</p>
+          </div>
+
           <!-- Quadra -->
           <div class="mb-4">
             <label class="block text-xs font-semibold mb-2" style="color:var(--muted-foreground)">QUADRA</label>
@@ -2025,6 +2038,10 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
 
           <!-- Resumo -->
           <div class="rounded-xl p-4 mb-5 space-y-2" style="background:var(--muted)">
+            <div class="flex justify-between text-sm" *ngIf="createdMensalista.group_name">
+              <span style="color:var(--muted-foreground)">Grupo</span>
+              <span class="font-semibold" style="color:var(--foreground)">{{ createdMensalista.group_name }}</span>
+            </div>
             <div class="flex justify-between text-sm">
               <span style="color:var(--muted-foreground)">Quadra</span>
               <span class="font-medium" style="color:var(--foreground)">{{ createdMensalista.court.name }}</span>
@@ -2260,6 +2277,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   private mensalistaPollCount   = 0;
   mensalistaForm = {
     court_id:    '',
+    group_name:  '',
     day_of_week: 1 as number,
     start_hour:  '',
     end_hour:    '',
@@ -2400,7 +2418,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     this.mensalistaSlotStep     = 'start';
     this.mensalistaBlockedSlots = [];
     this.createdMensalista      = null;
-    this.mensalistaForm         = { court_id: '', day_of_week: 1, start_hour: '', end_hour: '' };
+    this.mensalistaForm         = { court_id: '', group_name: '', day_of_week: 1, start_hour: '', end_hour: '' };
     // Pré-carrega se já houver só uma quadra
     if (this.availableCourts.length === 1) {
       this.mensalistaForm.court_id = this.availableCourts[0].id;
@@ -2414,7 +2432,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   }
 
   async confirmMensalista(): Promise<void> {
-    const { court_id, day_of_week, start_hour, end_hour } = this.mensalistaForm;
+    const { court_id, group_name, day_of_week, start_hour, end_hour } = this.mensalistaForm;
     if (!court_id || day_of_week === undefined || !start_hour || !end_hour) return;
     if (this.mensalistaCreating) return;
 
@@ -2429,6 +2447,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         client_name:      profile.name  || this.auth.user()?.displayName || 'Cliente',
         client_phone:     profile.phone || undefined,
         client_document:  profile.cpf   || undefined,
+        group_name:       group_name.trim() || undefined,
       });
       this.createdMensalista = result;
       this.mensalistaStep    = 'pix';
