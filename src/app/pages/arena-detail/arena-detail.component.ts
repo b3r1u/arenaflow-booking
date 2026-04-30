@@ -991,9 +991,18 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
               </div>
             </div>
 
-            <!-- Chip de economia -->
-            <div class="mb-3">
-              <span class="cta-price-pill">💸 Economize com o plano mensal</span>
+            <!-- Preço mensalista -->
+            <div class="flex items-center gap-3 mb-3">
+              <div class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-semibold"
+                   style="background:hsl(152,69%,40%,0.1);color:var(--primary)">
+                <span class="material-icons" style="font-size:0.8rem">payments</span>
+                {{ mensalistaCTARateLabel() }}/h · plano mensal
+              </div>
+              <div class="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full"
+                   style="background:var(--muted);color:var(--muted-foreground)">
+                <span class="material-icons" style="font-size:0.8rem">flash_on</span>
+                R\${{ arena.price_from }}{{ arena.price_from !== arena.price_to ? '–' + arena.price_to : '' }}/h avulso
+              </div>
             </div>
 
             <!-- Botão -->
@@ -2493,6 +2502,17 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
 
   courtName(courtId: string): string {
     return this.courts.find(c => c.id === courtId)?.name ?? 'Quadra';
+  }
+
+  /** Faixa de tarifas mensalista para exibição no CTA card (ex: "R$3" ou "R$3–5"). */
+  mensalistaCTARateLabel(): string {
+    const rates = this.courts
+      .map(c => c.mensalista_rate ?? c.hourly_rate)
+      .filter(r => r != null) as number[];
+    if (!rates.length) return 'R$–';
+    const min = Math.min(...rates);
+    const max = Math.max(...rates);
+    return min === max ? `R\$${min}` : `R\$${min}–${max}`;
   }
 
   async confirmMensalista(): Promise<void> {

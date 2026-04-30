@@ -522,7 +522,13 @@ import { Arena, SportType } from '../../models/models';
 
             <div class="card-footer">
               <div class="card-meta">
-                <span class="card-price">R\${{ arena.price_from }}{{ arena.price_from !== arena.price_to ? '–' + arena.price_to : '' }}<span>/h</span></span>
+                <div>
+                  <span class="card-price">R\${{ arena.price_from }}{{ arena.price_from !== arena.price_to ? '–' + arena.price_to : '' }}<span>/h</span></span>
+                  <span class="block text-xs mt-0.5" style="color:var(--muted-foreground)" *ngIf="mensalistaRateLabel(arena)">
+                    <span class="material-icons" style="font-size:0.7rem;vertical-align:middle">card_membership</span>
+                    Mensal: {{ mensalistaRateLabel(arena) }}/h
+                  </span>
+                </div>
                 <span class="card-courts">{{ getCourtsCount(arena) }} quadra{{ getCourtsCount(arena) !== 1 ? 's' : '' }} disponíveis</span>
               </div>
               <div class="card-cta">
@@ -642,6 +648,17 @@ export class SearchComponent implements OnInit {
 
   getCourtsCount(arena: Arena): number {
     return arena.courts?.filter(c => c.status === 'disponível').length ?? 0;
+  }
+
+  /** Retorna a faixa de tarifas mensalista das quadras (ex: "R$3" ou "R$3–5"). Null se nenhuma quadra tiver taxa mensal. */
+  mensalistaRateLabel(arena: Arena): string | null {
+    const rates = (arena.courts ?? [])
+      .map(c => c.mensalista_rate ?? c.hourly_rate)
+      .filter(r => r != null) as number[];
+    if (!rates.length) return null;
+    const min = Math.min(...rates);
+    const max = Math.max(...rates);
+    return min === max ? `R\$${min}` : `R\$${min}–${max}`;
   }
 
   clearFilters() {
