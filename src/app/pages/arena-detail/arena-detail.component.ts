@@ -2217,14 +2217,15 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     return this.data.isSlotOccupied(this.arena.id, this.form.court_id, this.form.date, hour, endH);
   }
 
-  /** First occupied hour strictly after start (used to block invalid end selections) */
-  private get firstOccupiedAfterStart(): string | null {
-    const startIdx = this.hours.indexOf(this.form.start_hour);
-    if (startIdx < 0) return null;
-    for (let i = startIdx + 1; i < this.hours.length; i++) {
-      if (this.isHourOccupied(this.hours[i])) return this.hours[i];
-    }
-    return null;
+  /**
+   * Verifica se o intervalo [startHour, endHour) conflita com qualquer slot ocupado.
+   * Usa solapamento estrito: slot.start < endHour AND slot.end > startHour
+   * Isso garante que [7h,8h] não conflita com mensalista [8h,10h] (8 < 8 é FALSO).
+   */
+  private wouldConflict(startHour: string, endHour: string): boolean {
+    return this.data.isSlotOccupied(
+      this.arena.id, this.form.court_id, this.form.date, startHour, endHour
+    );
   }
 
   /**
@@ -2260,8 +2261,10 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     if (hour === this.form.start_hour) return 'start';
     if (hInt <= startInt) return 'blocked';
 
-    const firstOcc = this.firstOccupiedAfterStart;
-    if (firstOcc && hInt >= parseInt(firstOcc)) return 'blocked';
+    // Verifica se o intervalo [start, h] conflita com qualquer slot ocupado.
+    // Ex: start=7h, h=8h, mensalista=[8h,10h] → 8<8 é FALSO → sem conflito → 8h liberado.
+    // Ex: start=7h, h=9h, mensalista=[8h,10h] → 8<9 E 10>7 → conflito → 9h bloqueado.
+    if (this.wouldConflict(this.form.start_hour, hour)) return 'blocked';
 
     if (hour === this.form.end_hour) return 'end';
     if (endInt > 0 && hInt > startInt && hInt < endInt) return 'in-range';
