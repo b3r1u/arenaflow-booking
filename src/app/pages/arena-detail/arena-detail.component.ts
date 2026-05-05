@@ -2671,34 +2671,30 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   // ── Promoções ──────────────────────────────────────────────────────────────
   promotions: Array<{
     id: string; title: string; description: string | null;
-    type: 'DESCONTO' | 'EVENTO' | 'CAMPEONATO';
+    type: 'DESCONTO' | 'EVENTO';
     discount_percent: number | null;
     start_date: string; end_date: string | null;
     start_hour: string | null; end_hour: string | null;
   }> = [];
 
   promoIcon(type: string): string {
-    if (type === 'DESCONTO')   return 'percent';
-    if (type === 'EVENTO')     return 'celebration';
-    if (type === 'CAMPEONATO') return 'emoji_events';
+    if (type === 'DESCONTO') return 'percent';
+    if (type === 'EVENTO')   return 'celebration';
     return 'local_offer';
   }
   promoIconColor(type: string): string {
-    if (type === 'DESCONTO')   return 'var(--primary)';
-    if (type === 'EVENTO')     return 'hsl(36,75%,42%)';
-    if (type === 'CAMPEONATO') return 'hsl(217,91%,55%)';
+    if (type === 'DESCONTO') return 'var(--primary)';
+    if (type === 'EVENTO')   return 'hsl(36,75%,42%)';
     return 'var(--muted-foreground)';
   }
   promoCardBg(type: string): string {
-    if (type === 'DESCONTO')   return 'hsl(152,69%,40%,0.06)';
-    if (type === 'EVENTO')     return 'hsl(36,95%,55%,0.06)';
-    if (type === 'CAMPEONATO') return 'hsl(217,91%,60%,0.06)';
+    if (type === 'DESCONTO') return 'hsl(152,69%,40%,0.06)';
+    if (type === 'EVENTO')   return 'hsl(36,95%,55%,0.06)';
     return 'var(--muted)';
   }
   promoCardBorder(type: string): string {
-    if (type === 'DESCONTO')   return 'hsl(152,69%,40%,0.2)';
-    if (type === 'EVENTO')     return 'hsl(36,95%,55%,0.2)';
-    if (type === 'CAMPEONATO') return 'hsl(217,91%,60%,0.2)';
+    if (type === 'DESCONTO') return 'hsl(152,69%,40%,0.2)';
+    if (type === 'EVENTO')   return 'hsl(36,95%,55%,0.2)';
     return 'var(--border)';
   }
 
