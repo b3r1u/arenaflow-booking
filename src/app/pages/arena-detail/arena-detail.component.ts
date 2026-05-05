@@ -2231,28 +2231,37 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
   /**
    * Visual state for each cell in the slot grid.
    * Possible values: 'past' | 'occupied' | 'available' | 'start' | 'end' | 'in-range' | 'available-end' | 'blocked'
+   *
+   * IMPORTANTE: isHourOccupied verifica a janela [hour, hour+1]. Se chamado no
+   * "picking end", marcaria 08:00 como 'occupied' (pois [08,09] bate com mensalista
+   * [08,10]) mesmo que o intervalo da reserva [07,08] seja válido. Por isso
+   * isHourOccupied só é chamado na fase 'start'; no "picking end" usamos apenas
+   * wouldConflict, que verifica o intervalo real [startHour, hour].
    */
   getSlotStatus(hour: string): string {
     const hInt = parseInt(hour);
 
     if (this.isHourPast(hour)) return 'past';
-    if (this.isHourOccupied(hour)) return 'occupied';
 
     const startInt = this.form.start_hour ? parseInt(this.form.start_hour) : -1;
     const endInt   = this.form.end_hour   ? parseInt(this.form.end_hour)   : -1;
 
     if (this.slotStep === 'start') {
-      if (hInt >= 23 && !this.form.end_hour) return 'blocked';
-
-      // Seleção completa (início + fim já escolhidos)
+      // Seleção completa (início + fim já escolhidos): checar range ANTES de
+      // isHourOccupied para que o slot de fim não seja sobrescrito por 'occupied'.
       if (this.form.end_hour) {
-        if (hour === this.form.start_hour)  return 'start';
-        if (hour === this.form.end_hour)    return 'end';
+        if (hour === this.form.start_hour)    return 'start';
+        if (hour === this.form.end_hour)      return 'end';
         if (hInt > startInt && hInt < endInt) return 'in-range';
-        if (hInt > endInt)                  return 'blocked'; // após fim → bloqueado
+        // Fora do intervalo selecionado: verificar ocupação normalmente
+        if (this.isHourOccupied(hour)) return 'occupied';
+        if (hInt > endInt)             return 'blocked'; // após fim → bloqueado
         return 'available'; // antes do início → disponível para nova seleção
       }
 
+      // Sem seleção ou apenas início escolhido
+      if (this.isHourOccupied(hour)) return 'occupied';
+      if (hInt >= 23) return 'blocked';
       if (hour === this.form.start_hour) return 'start';
       return 'available';
     }
@@ -2262,8 +2271,8 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     if (hInt <= startInt) return 'blocked';
 
     // Verifica se o intervalo [start, h] conflita com qualquer slot ocupado.
-    // Ex: start=7h, h=8h, mensalista=[8h,10h] → 8<8 é FALSO → sem conflito → 8h liberado.
-    // Ex: start=7h, h=9h, mensalista=[8h,10h] → 8<9 E 10>7 → conflito → 9h bloqueado.
+    // Ex: start=07h, end=08h, mensalista=[08h,10h] → 08<08 é FALSO → 08h liberado ✓
+    // Ex: start=07h, end=09h, mensalista=[08h,10h] → 08<09 E 10>07 → 09h bloqueado ✓
     if (this.wouldConflict(this.form.start_hour, hour)) return 'blocked';
 
     if (hour === this.form.end_hour) return 'end';
