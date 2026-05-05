@@ -10,6 +10,7 @@ import { BookingService, BookingResult, PaymentGroup, PaymentSplit, CancelPrevie
 import { ArenaService } from '../../services/arena.service';
 import { ReviewService, Review } from '../../services/review.service';
 import { MensalistaService, MensalistaResult } from '../../services/mensalista.service';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-arena-detail',
@@ -1011,6 +1012,44 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
               Quero ser mensalista
             </button>
 
+          </div>
+
+          <!-- ═══ PROMOÇÕES ATIVAS ═══ -->
+          <div *ngIf="promotions.length > 0" class="mt-6">
+            <h3 class="font-heading font-semibold text-sm mb-3" style="color:var(--foreground)">
+              🎉 Promoções & Eventos
+            </h3>
+            <div class="space-y-2">
+              <div *ngFor="let p of promotions"
+                   class="flex items-start gap-3 rounded-2xl px-4 py-3"
+                   [style.background]="promoCardBg(p.type)"
+                   [style.border]="'1px solid ' + promoCardBorder(p.type)">
+                <span class="material-icons flex-shrink-0 mt-0.5" style="font-size:1.1rem"
+                      [style.color]="promoIconColor(p.type)">{{ promoIcon(p.type) }}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-heading font-bold text-sm" style="color:var(--foreground)">{{ p.title }}</span>
+                    <span *ngIf="p.type === 'DESCONTO' && p.discount_percent"
+                          class="text-xs font-bold px-2 py-0.5 rounded-full"
+                          [style.background]="promoIconColor(p.type)"
+                          style="color:white">
+                      -{{ p.discount_percent }}%
+                    </span>
+                  </div>
+                  <p *ngIf="p.description" class="text-xs mt-0.5" style="color:var(--muted-foreground)">{{ p.description }}</p>
+                  <div class="flex items-center gap-3 mt-1 text-xs" style="color:var(--muted-foreground)">
+                    <span class="flex items-center gap-1">
+                      <span class="material-icons" style="font-size:0.8rem">calendar_today</span>
+                      {{ p.start_date | date:'dd/MM':'UTC' }}<ng-container *ngIf="p.end_date && p.end_date !== p.start_date"> – {{ p.end_date | date:'dd/MM':'UTC' }}</ng-container>
+                    </span>
+                    <span *ngIf="p.start_hour" class="flex items-center gap-1">
+                      <span class="material-icons" style="font-size:0.8rem">schedule</span>
+                      {{ p.start_hour }}<ng-container *ngIf="p.end_hour"> – {{ p.end_hour }}</ng-container>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- ═══ AVALIAÇÕES (carrossel — abaixo das quadras) ═══ -->
@@ -2591,7 +2630,7 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService, private mensalistaService: MensalistaService) {}
+  constructor(private data: DataService, private toast: ToastService, public auth: AuthService, private userProfile: UserProfileService, private bookingService: BookingService, private arenaService: ArenaService, private reviewService: ReviewService, private mensalistaService: MensalistaService, private api: ApiService) {}
 
   get arenaAvgRating(): number {
     if (!this.arenaReviews.length) return 0;
@@ -2629,6 +2668,40 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  // ── Promoções ──────────────────────────────────────────────────────────────
+  promotions: Array<{
+    id: string; title: string; description: string | null;
+    type: 'DESCONTO' | 'EVENTO' | 'CAMPEONATO';
+    discount_percent: number | null;
+    start_date: string; end_date: string | null;
+    start_hour: string | null; end_hour: string | null;
+  }> = [];
+
+  promoIcon(type: string): string {
+    if (type === 'DESCONTO')   return 'percent';
+    if (type === 'EVENTO')     return 'celebration';
+    if (type === 'CAMPEONATO') return 'emoji_events';
+    return 'local_offer';
+  }
+  promoIconColor(type: string): string {
+    if (type === 'DESCONTO')   return 'var(--primary)';
+    if (type === 'EVENTO')     return 'hsl(36,75%,42%)';
+    if (type === 'CAMPEONATO') return 'hsl(217,91%,55%)';
+    return 'var(--muted-foreground)';
+  }
+  promoCardBg(type: string): string {
+    if (type === 'DESCONTO')   return 'hsl(152,69%,40%,0.06)';
+    if (type === 'EVENTO')     return 'hsl(36,95%,55%,0.06)';
+    if (type === 'CAMPEONATO') return 'hsl(217,91%,60%,0.06)';
+    return 'var(--muted)';
+  }
+  promoCardBorder(type: string): string {
+    if (type === 'DESCONTO')   return 'hsl(152,69%,40%,0.2)';
+    if (type === 'EVENTO')     return 'hsl(36,95%,55%,0.2)';
+    if (type === 'CAMPEONATO') return 'hsl(217,91%,60%,0.2)';
+    return 'var(--border)';
+  }
+
   ngOnInit() {
     this.courts = this.arena.courts ?? [];
 
@@ -2639,6 +2712,13 @@ export class ArenaDetailComponent implements OnInit, OnDestroy {
         this.startReviewCarousel();
       })
       .catch(() => { /* mantém vazio em caso de erro */ });
+
+    // Carrega promoções ativas da arena
+    this.api.get<{ promotions: any[] }>(`/arenas/${this.arena.id}/promotions`)
+      .subscribe({
+        next: ({ promotions }) => { this.promotions = promotions; },
+        error: () => { /* sem promoções em caso de erro */ },
+      });
 
     // Busca dados frescos da arena para garantir preços atualizados
     this.arenaService.getArenaById(this.arena.id).subscribe({
