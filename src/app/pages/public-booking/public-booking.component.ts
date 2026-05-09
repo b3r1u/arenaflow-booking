@@ -239,10 +239,16 @@ interface PublicBooking {
 
           <!-- Rodapé ArenaFlow -->
           <div class="brand">
-            <div style="width:1.75rem;height:1.75rem;border-radius:0.5rem;background:var(--primary);display:flex;align-items:center;justify-content:center">
-              <span class="material-icons" style="font-size:1rem;color:white">sports_volleyball</span>
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="2.5" cy="10" r="1.8" fill="#22c55e"/>
+              <path d="M2.5,6.5 L8,6.5 L8,13.5 L2.5,13.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>
+              <path d="M2.5,4 L13,4 L13,16 L2.5,16" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+              <path d="M2.5,1.5 L18,1.5 L18,18.5 L2.5,18.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.8rem;color:var(--foreground);line-height:1.1">Arena</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.8rem;color:#22c55e;line-height:1.1;letter-spacing:0.18em">FLOW</div>
             </div>
-            <span class="font-bold text-sm" style="color:var(--foreground)">ArenaFlow</span>
           </div>
           <p style="text-align:center;font-size:0.7rem;color:var(--muted-foreground);margin-top:0.25rem">
             Reservas de quadras esportivas

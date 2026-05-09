@@ -170,11 +170,16 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 
           <!-- Brand / back button -->
           <div class="flex items-center gap-2.5 cursor-pointer" (click)="goSearch()">
-            <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                 style="background:var(--primary);box-shadow:0 3px 10px hsl(152,69%,40%,0.35)">
-              <span class="material-icons text-white" style="font-size:1rem">sports_volleyball</span>
+            <svg width="28" height="28" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="2.5" cy="10" r="1.8" fill="#22c55e"/>
+              <path d="M2.5,6.5 L8,6.5 L8,13.5 L2.5,13.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>
+              <path d="M2.5,4 L13,4 L13,16 L2.5,16" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+              <path d="M2.5,1.5 L18,1.5 L18,18.5 L2.5,18.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.85rem;color:var(--foreground);line-height:1.1">Arena</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:0.85rem;color:#22c55e;line-height:1.1;letter-spacing:0.18em">FLOW</div>
             </div>
-            <span class="font-heading font-bold text-sm" style="color:var(--foreground)">ArenaFlow</span>
           </div>
 
           <!-- Breadcrumb quando está numa arena -->

@@ -199,10 +199,18 @@ type Mode = 'login' | 'register' | 'reset';
 
         <!-- Logo -->
         <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:1.75rem">
-          <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:linear-gradient(135deg,#22a55c,#16a34a);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;box-shadow:0 8px 28px rgba(34,165,92,0.45)">
-            <span class="material-icons" style="color:white;font-size:1.75rem">sports_volleyball</span>
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.75rem">
+            <svg width="44" height="44" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="2.5" cy="10" r="1.8" fill="#22c55e"/>
+              <path d="M2.5,6.5 L8,6.5 L8,13.5 L2.5,13.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.38"/>
+              <path d="M2.5,4 L13,4 L13,16 L2.5,16" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+              <path d="M2.5,1.5 L18,1.5 L18,18.5 L2.5,18.5" fill="none" stroke="#22c55e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.35rem;color:#fff;line-height:1.1">Arena</div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.35rem;color:#22c55e;line-height:1.1;letter-spacing:0.18em">FLOW</div>
+            </div>
           </div>
-          <h1 style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.35rem;color:#fff;margin:0">ArenaFlow</h1>
           <p style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin:0.2rem 0 0;text-align:center">Reserve sua quadra de forma rápida e fácil</p>
         </div>
 
