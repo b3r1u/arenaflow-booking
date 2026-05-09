@@ -1165,10 +1165,7 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
   get emAndamento(): BookingResult[] {
     const today = new Date().toISOString().split('T')[0];
     return this.userBookings
-      .filter(b =>
-        b.date >= today &&
-        ['pendente', 'sinal_pago', 'parcial'].includes(b.payment_status)
-      )
+      .filter(b => b.date >= today && !this.isCancelled(b.payment_status))
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_hour.localeCompare(b.start_hour));
   }
 
@@ -1179,10 +1176,7 @@ export class MyBookingsComponent implements OnInit, OnDestroy {
   get jaRealizadas(): BookingResult[] {
     const today = new Date().toISOString().split('T')[0];
     return this.userBookings
-      .filter(b =>
-        !this.isCancelled(b.payment_status) &&
-        (b.payment_status === 'pago' || b.date < today)
-      )
+      .filter(b => b.date < today && !this.isCancelled(b.payment_status))
       .sort((a, b) => b.date.localeCompare(a.date));
   }
 
