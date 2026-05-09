@@ -1,26 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22a55c"/>
+      <stop offset="100%" style="stop-color:#16a34a"/>
+    </linearGradient>
+  </defs>
+
   <!-- Fundo verde arredondado -->
-  <rect width="64" height="64" rx="14" fill="#1a7a3f"/>
+  <rect width="64" height="64" rx="14" fill="url(#bg)"/>
 
-  <!-- Bola de vôlei de praia (círculo externo) -->
-  <circle cx="32" cy="30" r="14" fill="none" stroke="white" stroke-width="2.5"/>
+  <!-- Ponto central (origem do fluxo) -->
+  <circle cx="10" cy="32" r="4.5" fill="white"/>
 
-  <!-- Seam superior: arco horizontal -->
-  <path d="M18.5 26 Q32 20 45.5 26"
-        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Quadra 1 — menor, mais transparente -->
+  <path d="M10,19 L26,19 L26,45 L10,45"
+        fill="none" stroke="white" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.38"/>
 
-  <!-- Seam esquerdo: desce para baixo-direita -->
-  <path d="M18.5 26 Q22 33 25 43"
-        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Quadra 2 — média -->
+  <path d="M10,11 L40,11 L40,53 L10,53"
+        fill="none" stroke="white" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.65"/>
 
-  <!-- Seam direito: desce para baixo-esquerda -->
-  <path d="M45.5 26 Q42 33 39 43"
-        fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-
-  <!-- Rede embaixo (3 linhas verticais + linha horizontal) -->
-  <line x1="20" y1="48" x2="44" y2="48" stroke="white" stroke-width="2" stroke-linecap="round"/>
-  <line x1="26" y1="48" x2="26" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="32" y1="48" x2="32" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="38" y1="48" x2="38" y2="56" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
-  <line x1="20" y1="56" x2="44" y2="56" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <!-- Quadra 3 — maior, totalmente opaca -->
+  <path d="M10,4 L57,4 L57,60 L10,60"
+        fill="none" stroke="white" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
