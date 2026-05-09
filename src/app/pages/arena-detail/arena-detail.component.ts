@@ -1467,6 +1467,16 @@ import { ApiService } from '../../services/api.service';
               </div>
             </div>
 
+            <!-- Cancelar reserva sem pagamento — exibe enquanto aguarda pagamento (PENDENTE) -->
+            <div *ngIf="!paymentConfirmed && confirmedBooking?.payment_status === 'pendente'"
+                 class="mt-4 text-center">
+              <button (click)="openCancelFlow()"
+                      [disabled]="cancelling"
+                      style="background:none;border:none;color:var(--muted-foreground);font-size:0.8rem;cursor:pointer;text-decoration:underline;padding:0.5rem">
+                {{ cancelling ? 'Cancelando...' : 'Não quero esta reserva — cancelar' }}
+              </button>
+            </div>
+
             <!-- Cancelar reserva — só exibe após pagamento confirmado pela API -->
             <div *ngIf="['pago','sinal_pago','parcial'].includes(confirmedBooking?.payment_status ?? '')"
                  class="cancel-section">
