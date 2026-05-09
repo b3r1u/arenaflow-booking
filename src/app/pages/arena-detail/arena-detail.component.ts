@@ -1390,6 +1390,17 @@ import { ApiService } from '../../services/api.service';
               </p>
             </div>
 
+            <!-- Cancelar antes de pagar -->
+            <button *ngIf="!paymentConfirmed && confirmedBooking?.payment_status === 'pendente'"
+                    class="btn-ghost mb-4 px-0 -ml-1"
+                    [disabled]="cancelling"
+                    (click)="openCancelFlow()">
+              <span class="material-icons" style="font-size:1.1rem">
+                {{ cancelling ? 'refresh' : 'arrow_back' }}
+              </span>
+              {{ cancelling ? 'Cancelando...' : 'Cancelar esta reserva' }}
+            </button>
+
             <div class="card p-5 mb-4 text-left">
               <!-- Animação de bola após pagamento confirmado -->
               <div *ngIf="paymentConfirmed" class="flex flex-col items-center justify-center mb-5" style="padding:1rem 0">
@@ -1465,16 +1476,6 @@ import { ApiService } from '../../services/api.service';
                   </span>
                 </div>
               </div>
-            </div>
-
-            <!-- Cancelar reserva sem pagamento — exibe enquanto aguarda pagamento (PENDENTE) -->
-            <div *ngIf="!paymentConfirmed && confirmedBooking?.payment_status === 'pendente'"
-                 class="mt-4 text-center">
-              <button (click)="openCancelFlow()"
-                      [disabled]="cancelling"
-                      style="background:none;border:none;color:var(--muted-foreground);font-size:0.8rem;cursor:pointer;text-decoration:underline;padding:0.5rem">
-                {{ cancelling ? 'Cancelando...' : 'Não quero esta reserva — cancelar' }}
-              </button>
             </div>
 
             <!-- Cancelar reserva — só exibe após pagamento confirmado pela API -->
