@@ -99,8 +99,14 @@ interface PublicBooking {
     <div class="page">
 
       <!-- Loading -->
-      <div *ngIf="loading" class="flex flex-col items-center justify-center" style="min-height:60vh">
-        <span class="material-icons mb-3" style="font-size:3rem;color:var(--border);animation:spin 1s linear infinite">refresh</span>
+      <div *ngIf="loading" class="flex flex-col items-center justify-center gap-4" style="min-height:60vh">
+        <svg style="width:3rem;height:3rem" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="3" opacity="0.1"/>
+          <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 1.3s cubic-bezier(0.4,0,0.2,1) infinite"/>
+          <circle cx="50" cy="50" r="22" stroke="var(--primary)" stroke-width="2.5" opacity="0.1"/>
+          <circle cx="50" cy="50" r="22" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="69.1 138.2" opacity="0.65" style="transform-origin:50px 50px;animation:sp-ccw 0.9s cubic-bezier(0.4,0,0.2,1) infinite"/>
+          <circle cx="50" cy="50" r="5" fill="var(--primary)" style="animation:sp-pulse 1.3s ease-in-out infinite"/>
+        </svg>
         <p style="color:var(--muted-foreground);font-size:0.9rem">Carregando reserva...</p>
       </div>
 

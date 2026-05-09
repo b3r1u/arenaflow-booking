@@ -187,7 +187,6 @@ type Mode = 'login' | 'register' | 'reset';
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { animation: spin 1s linear infinite; vertical-align: middle; }
   `],
   template: `
     <div class="login-bg">
@@ -260,7 +259,10 @@ type Mode = 'login' | 'register' | 'reset';
         <p *ngIf="success" style="font-size:0.78rem;color:#4ade80;margin:0.5rem 0 0">{{ success }}</p>
 
         <button class="btn-primary" (click)="submit()" [disabled]="loading">
-          <span *ngIf="loading" class="material-icons spin" style="font-size:1rem">refresh</span>
+          <svg *ngIf="loading" style="width:0.9rem;height:0.9rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="36" stroke="rgba(255,255,255,0.25)" stroke-width="9"/>
+            <circle cx="50" cy="50" r="36" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 0.9s cubic-bezier(0.4,0,0.2,1) infinite"/>
+          </svg>
           {{ loading ? 'Aguarde...' : submitLabel }}
         </button>
 

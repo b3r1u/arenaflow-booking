@@ -1364,7 +1364,10 @@ import { ApiService } from '../../services/api.service';
           </div>
 
           <button class="btn-primary w-full py-3" (click)="confirm()" [disabled]="!form.client_name.trim() || !phoneValid || !cpfValid || confirming">
-            <span *ngIf="confirming" class="material-icons" style="font-size:1rem;animation:spin 1s linear infinite">refresh</span>
+            <svg *ngIf="confirming" style="width:0.9rem;height:0.9rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="36" stroke="rgba(255,255,255,0.25)" stroke-width="9"/>
+              <circle cx="50" cy="50" r="36" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 0.9s cubic-bezier(0.4,0,0.2,1) infinite"/>
+            </svg>
             <span *ngIf="!confirming" class="material-icons" style="font-size:1rem">{{ form.split_payment ? 'group' : 'pix' }}</span>
             {{ confirming ? 'Criando reserva...' : (form.payment_option === '50' ? 'Pagar entrada via PIX' : (form.split_payment ? 'Criar cobrança' : 'Pagar total via PIX')) }}
           </button>
@@ -1794,7 +1797,10 @@ import { ApiService } from '../../services/api.service';
                     class="btn-primary w-full py-3 mb-2"
                     [disabled]="reviewStars === 0 || reviewSubmitting"
                     (click)="submitReview()">
-              <span *ngIf="reviewSubmitting" class="material-icons" style="font-size:1rem;animation:spin 1s linear infinite">refresh</span>
+              <svg *ngIf="reviewSubmitting" style="width:0.9rem;height:0.9rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="50" r="36" stroke="rgba(255,255,255,0.25)" stroke-width="9"/>
+                <circle cx="50" cy="50" r="36" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 0.9s cubic-bezier(0.4,0,0.2,1) infinite"/>
+              </svg>
               <span *ngIf="!reviewSubmitting" class="material-icons" style="font-size:1rem">send</span>
               {{ reviewSubmitting ? 'Enviando...' : 'Enviar avaliação' }}
             </button>
@@ -1970,8 +1976,11 @@ import { ApiService } from '../../services/api.service';
             </div>
 
             <!-- Loading -->
-            <div *ngIf="mensalistaSlotsLoading" class="flex items-center justify-center py-4">
-              <span class="material-icons animate-spin text-sm mr-2" style="color:var(--primary);animation:spin 1s linear infinite">autorenew</span>
+            <div *ngIf="mensalistaSlotsLoading" class="flex items-center justify-center gap-2 py-4">
+              <svg style="width:1rem;height:1rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+                <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" opacity="0.2"/>
+                <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 1.3s cubic-bezier(0.4,0,0.2,1) infinite"/>
+              </svg>
               <span class="text-xs" style="color:var(--muted-foreground)">Verificando disponibilidade…</span>
             </div>
 
@@ -2133,7 +2142,10 @@ import { ApiService } from '../../services/api.service';
           <!-- Indicador de aguardando pagamento -->
           <div class="flex items-center justify-center gap-2 py-2 rounded-xl mb-4"
                style="background:var(--muted)">
-            <span class="material-icons text-sm animate-spin" style="color:var(--primary);animation:spin 1.2s linear infinite">autorenew</span>
+            <svg style="width:1rem;height:1rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" opacity="0.2"/>
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 1.3s cubic-bezier(0.4,0,0.2,1) infinite"/>
+            </svg>
             <span class="text-xs font-medium" style="color:var(--muted-foreground)">Aguardando confirmação do pagamento…</span>
           </div>
 

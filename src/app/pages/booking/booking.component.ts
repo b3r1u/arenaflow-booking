@@ -465,8 +465,14 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           </div>
 
           <!-- Loading -->
-          <div *ngIf="paymentDetailLoading" class="flex flex-col items-center py-8 gap-3">
-            <span class="material-icons" style="font-size:2.5rem;color:var(--border);animation:spin 1s linear infinite">refresh</span>
+          <div *ngIf="paymentDetailLoading" class="flex flex-col items-center py-8 gap-4">
+            <svg style="width:3rem;height:3rem" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="3" opacity="0.1"/>
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 1.3s cubic-bezier(0.4,0,0.2,1) infinite"/>
+              <circle cx="50" cy="50" r="22" stroke="var(--primary)" stroke-width="2.5" opacity="0.1"/>
+              <circle cx="50" cy="50" r="22" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="69.1 138.2" opacity="0.65" style="transform-origin:50px 50px;animation:sp-ccw 0.9s cubic-bezier(0.4,0,0.2,1) infinite"/>
+              <circle cx="50" cy="50" r="5" fill="var(--primary)" style="animation:sp-pulse 1.3s ease-in-out infinite"/>
+            </svg>
             <p class="text-sm" style="color:var(--muted-foreground)">Carregando cotas...</p>
           </div>
 
@@ -868,7 +874,10 @@ import { MensalistaService, MensalistaResult } from '../../services/mensalista.s
           <!-- Indicador de polling -->
           <div class="flex items-center justify-center gap-2 py-2 rounded-xl mb-4"
                style="background:var(--muted)">
-            <span class="material-icons text-sm" style="color:var(--primary);animation:spin 1.2s linear infinite">autorenew</span>
+            <svg style="width:1rem;height:1rem;flex-shrink:0" viewBox="0 0 100 100" fill="none">
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" opacity="0.2"/>
+              <circle cx="50" cy="50" r="36" stroke="var(--primary)" stroke-width="8" stroke-linecap="round" stroke-dasharray="169.6 226.2" style="transform-origin:50px 50px;animation:sp-cw 1.3s cubic-bezier(0.4,0,0.2,1) infinite"/>
+            </svg>
             <span class="text-xs font-medium" style="color:var(--muted-foreground)">Aguardando confirmação do pagamento…</span>
           </div>
 
