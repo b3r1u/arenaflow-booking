@@ -1,9 +1,10 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { UserProfileService } from '../../services/user-profile.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-user-profile',
@@ -40,6 +41,26 @@ import { UserProfileService } from '../../services/user-profile.service';
       transition: background 0.15s;
     }
     .btn-danger:hover { background: hsl(0,84%,60%,0.06); }
+    .theme-toggle {
+      position: relative;
+      width: 46px; height: 26px;
+      border-radius: 9999px;
+      background: var(--muted);
+      border: none; cursor: pointer;
+      transition: background 0.2s;
+      padding: 0; flex-shrink: 0;
+    }
+    .theme-toggle.on { background: var(--primary); }
+    .theme-knob {
+      position: absolute;
+      top: 4px; left: 4px;
+      width: 18px; height: 18px;
+      border-radius: 9999px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      transition: transform 0.2s;
+    }
+    .theme-toggle.on .theme-knob { transform: translateX(20px); }
   `],
   template: `
     <div class="max-w-lg mx-auto px-4 pb-24 pt-4">
@@ -115,10 +136,36 @@ import { UserProfileService } from '../../services/user-profile.service';
 
       </div>
 
-      <button class="btn-primary w-full py-3 mb-3" (click)="save()">
+      <button class="btn-primary w-full py-3 mb-4" (click)="save()">
         <span class="material-icons" style="font-size:1rem">check</span>
         Salvar perfil
       </button>
+
+      <!-- Aparência -->
+      <div class="card p-4 mb-3">
+        <p class="text-xs font-semibold mb-3" style="color:var(--muted-foreground);text-transform:uppercase;letter-spacing:0.05em">Aparência</p>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style="background:hsl(152,69%,40%,0.1)">
+              <span class="material-icons" style="font-size:1.1rem;color:var(--primary)">
+                {{ theme.dark() ? 'dark_mode' : 'light_mode' }}
+              </span>
+            </div>
+            <div>
+              <p class="text-sm font-semibold" style="color:var(--foreground);margin:0">
+                {{ theme.dark() ? 'Modo escuro' : 'Modo claro' }}
+              </p>
+              <p class="text-xs" style="color:var(--muted-foreground);margin:0">
+                Toque para alternar o tema
+              </p>
+            </div>
+          </div>
+          <button class="theme-toggle" [class.on]="theme.dark()" (click)="theme.toggle()">
+            <span class="theme-knob"></span>
+          </button>
+        </div>
+      </div>
 
       <button class="btn-danger" (click)="logout()">
         <span class="material-icons" style="font-size:1rem">logout</span>
@@ -130,6 +177,8 @@ import { UserProfileService } from '../../services/user-profile.service';
 })
 export class UserProfileComponent implements OnInit {
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
+  readonly theme = inject(ThemeService);
 
   form = { name: '', phone: '', cpf: '' };
   photoSrc:   string | null = null;
