@@ -185,15 +185,6 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 
           <div class="flex-1"></div>
 
-          <!-- Dark mode toggle -->
-          <button (click)="theme.toggle()"
-                  class="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style="background:var(--muted);color:var(--muted-foreground)"
-                  [title]="theme.dark() ? 'Modo claro' : 'Modo escuro'">
-            <span *ngIf="!theme.dark()" class="material-icons" style="font-size:1.15rem">dark_mode</span>
-            <span *ngIf="theme.dark()"  class="material-icons" style="font-size:1.15rem;color:var(--accent)">light_mode</span>
-          </button>
-
           <!-- Avatar do usuário -->
           <div class="relative">
             <button (click)="menuOpen = !menuOpen"
