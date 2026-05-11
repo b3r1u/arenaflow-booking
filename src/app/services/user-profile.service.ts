@@ -22,7 +22,7 @@ export class UserProfileService {
 
   /** Carrega perfil da API após login */
   loadFromApi() {
-    return this.api.get<{ user: any }>('/users/me').pipe(
+    return this.api.getSilent<{ user: any }>('/users/me').pipe(
       tap({ next: ({ user }) => {
         this._profile = {
           name:  user.name  || '',

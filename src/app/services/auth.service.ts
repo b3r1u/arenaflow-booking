@@ -26,7 +26,7 @@ export class AuthService {
         // 2. Cria/busca usuário no banco via POST /auth/me
         // 3. Carrega perfil e verifica se está incompleto
         u.getIdToken().then(() => {
-          this.api.post<any>('/auth/me', { role: 'CLIENT' }).subscribe({
+          this.api.postSilent<any>('/auth/me', { role: 'CLIENT' }).subscribe({
             next: () => {
               this.profileService.loadFromApi().subscribe({ error: () => {} });
             },

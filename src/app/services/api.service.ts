@@ -28,6 +28,12 @@ export class ApiService {
     return this.http.post<T>(`${this.baseUrl}${path}`, body);
   }
 
+  postSilent<T>(path: string, body: unknown): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${path}`, body, {
+      context: new HttpContext().set(SILENT_REQUEST, true),
+    });
+  }
+
   put<T>(path: string, body: unknown): Observable<T> {
     return this.http.put<T>(`${this.baseUrl}${path}`, body);
   }
