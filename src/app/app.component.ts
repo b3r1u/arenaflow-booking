@@ -198,6 +198,14 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
                 <p class="text-sm font-semibold truncate" style="color:var(--foreground)">{{ auth.user()?.displayName }}</p>
                 <p class="text-xs truncate" style="color:var(--muted-foreground)">{{ auth.user()?.email }}</p>
               </div>
+              <button (click)="legalOpen=true;legalTab='terms';menuOpen=false"
+                      class="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors"
+                      style="color:var(--muted-foreground);background:none;border:none;cursor:pointer;text-align:left"
+                      onmouseover="this.style.background='var(--muted)'"
+                      onmouseout="this.style.background='none'">
+                <span class="material-icons" style="font-size:1rem">gavel</span>
+                Termos e Privacidade
+              </button>
               <button (click)="logout()"
                       class="w-full flex items-center gap-2 px-4 py-2.5 text-sm transition-colors"
                       style="color:#ef4444;background:none;border:none;cursor:pointer;text-align:left"
@@ -245,12 +253,111 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
 
         <!-- Toast -->
         <div *ngIf="toastMsg" class="toast" style="bottom:5rem">{{ toastMsg }}</div>
+
+        <!-- Modal: Termos / Privacidade -->
+        <div *ngIf="legalOpen" class="legal-overlay" (click)="legalOpen=false">
+          <div class="legal-modal" (click)="$event.stopPropagation()">
+            <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem">
+              <button class="legal-tab" [class.active]="legalTab==='terms'"   (click)="legalTab='terms'">Termos de Uso</button>
+              <button class="legal-tab" [class.active]="legalTab==='privacy'" (click)="legalTab='privacy'">Política de Privacidade</button>
+              <button (click)="legalOpen=false" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted-foreground);font-size:1.4rem;padding:0 0.25rem;line-height:1">×</button>
+            </div>
+            <div *ngIf="legalTab==='terms'" class="legal-body">
+              <h2>Termos de Uso — ArenaFlow</h2>
+              <p class="legal-updated">Última atualização: maio de 2025</p>
+              <h3>1. Aceitação</h3>
+              <p>Ao acessar ou utilizar o aplicativo ArenaFlow, você declara ter lido, compreendido e concordado integralmente com estes Termos de Uso.</p>
+              <h3>2. O Serviço</h3>
+              <p>O ArenaFlow é uma plataforma de intermediação que conecta usuários a estabelecimentos esportivos para reserva de quadras. Não somos proprietários nem operadores das arenas cadastradas.</p>
+              <h3>3. Cadastro e Conta</h3>
+              <p>Para utilizar o serviço é necessário criar uma conta com informações verídicas. Você é responsável pela confidencialidade de suas credenciais e por todas as atividades realizadas em sua conta.</p>
+              <h3>4. Reservas e Pagamentos</h3>
+              <p>As reservas são confirmadas somente após o pagamento via PIX. O valor é processado pelo Pagar.me (gateway certificado pelo Banco Central). Uma taxa de serviço pode ser aplicada conforme o plano do estabelecimento.</p>
+              <h3>5. Cancelamentos</h3>
+              <p>As políticas de cancelamento e reembolso são definidas por cada estabelecimento. Estornos via PIX podem levar até 5 dias úteis.</p>
+              <h3>6. Responsabilidades</h3>
+              <p>O ArenaFlow não se responsabiliza por problemas decorrentes do estabelecimento, danos ocorridos nas dependências da arena ou falhas de conectividade.</p>
+              <h3>7. Alterações</h3>
+              <p>Podemos atualizar estes Termos a qualquer momento. Notificaremos por e-mail sobre mudanças relevantes.</p>
+              <h3>8. Contato</h3>
+              <p>Dúvidas: <strong>connectsolve.ti&#64;gmail.com</strong></p>
+            </div>
+            <div *ngIf="legalTab==='privacy'" class="legal-body">
+              <h2>Política de Privacidade — ArenaFlow</h2>
+              <p class="legal-updated">Última atualização: maio de 2025 · Conforme LGPD (Lei nº 13.709/2018)</p>
+              <h3>1. Controlador dos Dados</h3>
+              <p>Solve Tecnologia ("ArenaFlow") é a controladora dos seus dados. Contato: <strong>connectsolve.ti&#64;gmail.com</strong></p>
+              <h3>2. Dados Coletados</h3>
+              <p><strong>Fornecidos por você:</strong> nome, e-mail, CPF, telefone.<br><strong>Gerados pelo uso:</strong> histórico de reservas, avaliações.<br><strong>Pagamento:</strong> processados pelo Pagar.me — não armazenamos dados de cartão.</p>
+              <h3>3. Finalidade e Base Legal</h3>
+              <p><strong>Execução do contrato (Art. 7º, V):</strong> criação de conta, reservas e pagamentos.<br><strong>Legítimo interesse (Art. 7º, IX):</strong> confirmações por e-mail.</p>
+              <h3>4. Compartilhamento</h3>
+              <p>Compartilhamos dados apenas com: Firebase/Google (autenticação), Pagar.me (pagamentos), Resend (e-mails), e o estabelecimento reservado (nome e telefone). Não vendemos seus dados.</p>
+              <h3>5. Retenção</h3>
+              <p>Dados mantidos enquanto a conta estiver ativa. Após exclusão, removidos em até 30 dias salvo obrigação legal.</p>
+              <h3>6. Seus Direitos (LGPD)</h3>
+              <p>Acesso, correção, exclusão, portabilidade e revogação de consentimento. Solicite em: <strong>connectsolve.ti&#64;gmail.com</strong> com assunto "LGPD – [pedido]".</p>
+              <h3>7. Segurança</h3>
+              <p>Criptografia em trânsito (HTTPS/TLS), dados financeiros criptografados, acesso restrito por autenticação.</p>
+            </div>
+          </div>
+        </div>
       </ng-container>
 
       </ng-container> <!-- /!publicBookingId -->
     </div>
 
     <style>
+      /* ── Modal legal ── */
+      .legal-overlay {
+        position: fixed; inset: 0; z-index: 1000;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(4px);
+        display: flex; align-items: flex-end; justify-content: center;
+        animation: sp-fade 0.2s ease;
+      }
+      @media (min-height: 600px) { .legal-overlay { align-items: center; } }
+      .legal-modal {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 1.25rem 1.25rem 0 0;
+        width: 100%; max-width: 560px;
+        max-height: 80vh;
+        display: flex; flex-direction: column;
+        padding: 1.25rem 1.25rem 2rem;
+        overflow: hidden;
+      }
+      @media (min-height: 600px) {
+        .legal-modal { border-radius: 1.25rem; max-height: 75vh; }
+      }
+      .legal-tab {
+        flex: 1; background: none; border: none; cursor: pointer;
+        padding: 0.6rem 0; font-size: 0.8rem; font-weight: 600;
+        color: var(--muted-foreground);
+        border-bottom: 2px solid transparent;
+        transition: color 0.2s, border-color 0.2s;
+      }
+      .legal-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+      .legal-body {
+        overflow-y: auto; flex: 1; padding-right: 0.25rem;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .legal-body h2 {
+        font-size: 1rem; font-weight: 700; color: var(--foreground);
+        margin: 0.5rem 0 0.25rem;
+      }
+      .legal-body h3 {
+        font-size: 0.72rem; font-weight: 700; color: var(--primary);
+        margin: 1rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.05em;
+      }
+      .legal-body p, .legal-body li {
+        font-size: 0.78rem; color: var(--muted-foreground);
+        line-height: 1.65; margin: 0 0 0.4rem;
+      }
+      .legal-body ul { padding-left: 1.1rem; margin: 0.3rem 0 0.6rem; }
+      .legal-updated { font-size: 0.68rem !important; color: var(--border) !important; }
+
       /* ── HTTP loading overlay ── */
       .sp-overlay {
         position: fixed; inset: 0; z-index: 9999;
@@ -267,8 +374,10 @@ export class AppComponent implements OnInit {
   view: View = 'search';
   selectedArena: Arena | null = null;
   toastMsg: string | null = null;
-  menuOpen   = false;
+  menuOpen    = false;
   avatarError = false;
+  legalOpen   = false;
+  legalTab: 'terms' | 'privacy' = 'terms';
 
   showProfileCard = false;
   savingProfile   = false;

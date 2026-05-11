@@ -187,6 +187,61 @@ type Mode = 'login' | 'register' | 'reset';
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Modal legal ── */
+    .legal-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      animation: fadeIn 0.2s ease;
+    }
+    @media (min-height: 600px) { .legal-overlay { align-items: center; } }
+    .legal-modal {
+      background: #0d1f14;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1.25rem 1.25rem 0 0;
+      width: 100%; max-width: 560px;
+      max-height: 82vh;
+      display: flex; flex-direction: column;
+      padding: 1.25rem 1.25rem 2rem;
+      animation: slideUp 0.25s ease;
+      overflow: hidden;
+    }
+    @media (min-height: 600px) {
+      .legal-modal { border-radius: 1.25rem; max-height: 78vh; }
+    }
+    .legal-tab {
+      flex: 1; background: none; border: none; cursor: pointer;
+      padding: 0.6rem 0; font-size: 0.8rem; font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .legal-tab.active { color: #4ade80; border-bottom-color: #4ade80; }
+    .legal-body {
+      overflow-y: auto; flex: 1;
+      padding-right: 0.25rem;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    .legal-body h2 {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      margin: 0.5rem 0 0.25rem;
+    }
+    .legal-body h3 {
+      font-size: 0.78rem; font-weight: 700;
+      color: #4ade80; margin: 1rem 0 0.3rem;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .legal-body p, .legal-body li {
+      font-size: 0.78rem; color: rgba(255,255,255,0.58);
+      line-height: 1.6; margin: 0 0 0.4rem;
+    }
+    .legal-body ul { padding-left: 1.1rem; margin: 0.3rem 0 0.6rem; }
+    .legal-updated { font-size: 0.7rem !important; color: rgba(255,255,255,0.28) !important; }
+    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   `],
   template: `
     <div class="login-bg">
@@ -284,14 +339,106 @@ type Mode = 'login' | 'register' | 'reset';
         </ng-container>
 
         <p style="font-size:0.7rem;text-align:center;color:rgba(255,255,255,0.22);margin-top:1.25rem;margin-bottom:0">
-          Ao entrar, você concorda com os termos de uso da ArenaFlow
+          Ao entrar, você concorda com os
+          <button (click)="openLegal('terms')" style="background:none;border:none;padding:0;color:rgba(255,255,255,0.45);font-size:0.7rem;cursor:pointer;text-decoration:underline">Termos de Uso</button>
+          e a
+          <button (click)="openLegal('privacy')" style="background:none;border:none;padding:0;color:rgba(255,255,255,0.45);font-size:0.7rem;cursor:pointer;text-decoration:underline">Política de Privacidade</button>
         </p>
+      </div>
+    </div>
+
+    <!-- Modal: Termos / Privacidade -->
+    <div *ngIf="legalOpen" class="legal-overlay" (click)="legalOpen=false">
+      <div class="legal-modal" (click)="$event.stopPropagation()">
+        <!-- Tabs -->
+        <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:1.25rem">
+          <button class="legal-tab" [class.active]="legalTab==='terms'"   (click)="legalTab='terms'">Termos de Uso</button>
+          <button class="legal-tab" [class.active]="legalTab==='privacy'" (click)="legalTab='privacy'">Política de Privacidade</button>
+          <button (click)="legalOpen=false" style="margin-left:auto;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:1.25rem;padding:0 0.25rem;line-height:1">×</button>
+        </div>
+
+        <!-- Termos de Uso -->
+        <div *ngIf="legalTab==='terms'" class="legal-body">
+          <h2>Termos de Uso — ArenaFlow</h2>
+          <p class="legal-updated">Última atualização: maio de 2025</p>
+
+          <h3>1. Aceitação</h3>
+          <p>Ao acessar ou utilizar o aplicativo ArenaFlow, você declara ter lido, compreendido e concordado integralmente com estes Termos de Uso. Caso não concorde, interrompa o uso imediatamente.</p>
+
+          <h3>2. O Serviço</h3>
+          <p>O ArenaFlow é uma plataforma de intermediação que conecta usuários a estabelecimentos esportivos (arenas) para reserva de quadras. Não somos proprietários nem operadores das arenas cadastradas.</p>
+
+          <h3>3. Cadastro e Conta</h3>
+          <p>Para utilizar o serviço é necessário criar uma conta com informações verídicas. Você é responsável pela confidencialidade de suas credenciais e por todas as atividades realizadas em sua conta.</p>
+
+          <h3>4. Reservas e Pagamentos</h3>
+          <p>As reservas são confirmadas somente após o pagamento via PIX. O valor é processado pelo Pagar.me (gateway de pagamento certificado pelo Banco Central). Uma taxa de serviço pode ser aplicada conforme o plano do estabelecimento.</p>
+
+          <h3>5. Cancelamentos</h3>
+          <p>As políticas de cancelamento e reembolso são definidas por cada estabelecimento. Verifique as condições antes de confirmar sua reserva. Estornos para pagamentos via PIX podem levar até 5 dias úteis.</p>
+
+          <h3>6. Responsabilidades</h3>
+          <p>O ArenaFlow não se responsabiliza por: (a) problemas decorrentes do estabelecimento, como fechamento inesperado ou manutenção; (b) danos ou lesões ocorridos nas dependências da arena; (c) falhas de conectividade à internet.</p>
+
+          <h3>7. Propriedade Intelectual</h3>
+          <p>Todo o conteúdo da plataforma (marca, design, código) é propriedade da ArenaFlow / Solve Tecnologia. É proibida a reprodução sem autorização prévia.</p>
+
+          <h3>8. Alterações</h3>
+          <p>Podemos atualizar estes Termos a qualquer momento. Notificaremos por e-mail ou pelo próprio aplicativo sobre mudanças relevantes.</p>
+
+          <h3>9. Contato</h3>
+          <p>Dúvidas: <strong>connectsolve.ti&#64;gmail.com</strong></p>
+        </div>
+
+        <!-- Política de Privacidade -->
+        <div *ngIf="legalTab==='privacy'" class="legal-body">
+          <h2>Política de Privacidade — ArenaFlow</h2>
+          <p class="legal-updated">Última atualização: maio de 2025 · Em conformidade com a LGPD (Lei nº 13.709/2018)</p>
+
+          <h3>1. Controlador dos Dados</h3>
+          <p>Solve Tecnologia ("ArenaFlow") é a controladora dos seus dados pessoais. Contato do responsável pela proteção de dados: <strong>connectsolve.ti&#64;gmail.com</strong></p>
+
+          <h3>2. Dados Coletados</h3>
+          <p><strong>Dados fornecidos por você:</strong> nome completo, e-mail, CPF, telefone celular.<br>
+          <strong>Dados gerados pelo uso:</strong> histórico de reservas, horários, quadras preferidas, avaliações.<br>
+          <strong>Dados de pagamento:</strong> processados diretamente pelo Pagar.me — não armazenamos número de cartão ou chaves PIX completas.</p>
+
+          <h3>3. Finalidade e Base Legal</h3>
+          <p><strong>Execução do contrato (Art. 7º, V, LGPD):</strong> criação de conta, processamento de reservas e pagamentos.<br>
+          <strong>Legítimo interesse (Art. 7º, IX, LGPD):</strong> comunicação sobre reservas, envio de confirmações por e-mail.<br>
+          <strong>Consentimento (Art. 7º, I, LGPD):</strong> envio de comunicações promocionais (quando aplicável).</p>
+
+          <h3>4. Compartilhamento de Dados</h3>
+          <p>Seus dados são compartilhados apenas com:</p>
+          <ul>
+            <li><strong>Firebase / Google:</strong> autenticação e armazenamento seguro de credenciais.</li>
+            <li><strong>Pagar.me:</strong> processamento de pagamentos PIX (certificado pelo Banco Central).</li>
+            <li><strong>Resend:</strong> envio de e-mails transacionais (confirmações de reserva).</li>
+            <li><strong>Estabelecimento reservado:</strong> nome e telefone para confirmar o atendimento.</li>
+          </ul>
+          <p>Não vendemos, alugamos ou cedemos seus dados a terceiros para fins comerciais.</p>
+
+          <h3>5. Retenção de Dados</h3>
+          <p>Seus dados são mantidos enquanto sua conta estiver ativa. Após a exclusão da conta, os dados são removidos em até 30 dias, exceto quando houver obrigação legal de retenção.</p>
+
+          <h3>6. Seus Direitos (LGPD)</h3>
+          <p>Você tem direito a: confirmar a existência de tratamento · acessar seus dados · corrigir dados incompletos · solicitar anonimização ou exclusão · revogar consentimento · portabilidade dos dados.</p>
+          <p>Para exercer esses direitos, envie sua solicitação para <strong>connectsolve.ti&#64;gmail.com</strong> com o assunto "LGPD – [seu pedido]".</p>
+
+          <h3>7. Segurança</h3>
+          <p>Adotamos medidas técnicas e organizacionais para proteger seus dados: criptografia em trânsito (HTTPS/TLS), dados financeiros sensíveis armazenados de forma criptografada, acesso restrito por autenticação.</p>
+
+          <h3>8. Cookies</h3>
+          <p>Utilizamos apenas cookies essenciais para o funcionamento do aplicativo. Não utilizamos cookies de rastreamento ou publicidade.</p>
+        </div>
       </div>
     </div>
   `
 })
 export class LoginComponent {
   mode: Mode = 'login';
+  legalOpen = false;
+  legalTab: 'terms' | 'privacy' = 'terms';
   name = '';
   email = '';
   password = '';
@@ -307,6 +454,8 @@ export class LoginComponent {
     if (this.mode === 'register') return 'Criar conta';
     return 'Enviar link de redefinição';
   }
+
+  openLegal(tab: 'terms' | 'privacy') { this.legalTab = tab; this.legalOpen = true; }
 
   setMode(m: Mode) { this.mode = m; this.error = ''; this.success = ''; }
 
