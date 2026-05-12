@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { SearchComponent } from './pages/search/search.component';
 import { ArenaDetailComponent } from './pages/arena-detail/arena-detail.component';
 import { MyBookingsComponent } from './pages/booking/booking.component';
@@ -12,6 +13,7 @@ import { ThemeService } from './services/theme.service';
 import { AuthService } from './services/auth.service';
 import { LoadingService } from './services/loading.service';
 import { UserProfileService } from './services/user-profile.service';
+import { ApiService } from './services/api.service';
 import { Arena } from './models/models';
 
 type View = 'search' | 'arena' | 'my-bookings' | 'profile';
@@ -228,6 +230,78 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
         <app-my-bookings   *ngIf="view === 'my-bookings'"></app-my-bookings>
         <app-user-profile  *ngIf="view === 'profile'"></app-user-profile>
 
+        <!-- ───── Botão flutuante de suporte ───── -->
+        <button class="bk-support-fab" (click)="supportOpen = !supportOpen" [class.bk-support-fab--active]="supportOpen" aria-label="Suporte">
+          <span class="material-icons" style="font-size:1.5rem">{{ supportOpen ? 'close' : 'chat_bubble' }}</span>
+        </button>
+
+        <!-- Painel de chamados -->
+        <div class="bk-support-panel" [class.bk-support-panel--open]="supportOpen">
+          <div class="bk-support-panel__header">
+            <div class="flex items-center gap-3">
+              <div class="bk-support-panel__avatar">
+                <span class="material-icons" style="font-size:1.2rem">support_agent</span>
+              </div>
+              <div>
+                <p class="font-semibold text-sm" style="color:var(--foreground)">Suporte ArenaFlow</p>
+                <p class="text-xs" style="color:var(--muted-foreground)">Resposta em até 24h</p>
+              </div>
+            </div>
+            <button class="bk-support-panel__close" (click)="supportOpen = false">
+              <span class="material-icons" style="font-size:1.1rem">close</span>
+            </button>
+          </div>
+
+          <div class="bk-support-panel__body">
+            <div class="bk-support-msg bk-support-msg--in">
+              <div class="bk-support-msg__bubble">
+                <p>Olá! 👋</p>
+                <p class="mt-1">Descreva o que está enfrentando. Nossa equipe irá analisar e solucionar em breve.</p>
+              </div>
+              <span class="bk-support-msg__time">Agora</span>
+            </div>
+
+            <ng-container *ngFor="let msg of supportMessages">
+              <div class="bk-support-msg bk-support-msg--out">
+                <div class="bk-support-msg__bubble bk-support-msg__bubble--out">{{ msg.text }}</div>
+                <span class="bk-support-msg__time">{{ msg.time }}</span>
+              </div>
+            </ng-container>
+
+            <div *ngIf="supportSending" class="bk-support-msg bk-support-msg--in">
+              <div class="bk-support-msg__bubble bk-support-typing">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <div *ngIf="supportSent && !supportSending" class="bk-support-msg bk-support-msg--in">
+              <div class="bk-support-msg__bubble">
+                ✅ Chamado aberto! Nossa equipe já está ciente e irá solucionar em breve.
+              </div>
+            </div>
+
+            <div *ngIf="supportError" class="bk-support-msg bk-support-msg--in">
+              <div class="bk-support-msg__bubble" style="background:hsl(0,72%,51%,0.1);color:hsl(0,72%,45%)">
+                ⚠️ {{ supportError }}
+              </div>
+            </div>
+          </div>
+
+          <div class="bk-support-panel__footer">
+            <textarea class="bk-support-panel__input"
+                      [(ngModel)]="supportInput"
+                      (keydown.enter)="onSupportEnter($event)"
+                      placeholder="Digite sua mensagem..."
+                      rows="1"></textarea>
+            <button class="bk-support-panel__send"
+                    [disabled]="!supportInput.trim() || supportSending"
+                    (click)="sendSupportMessage()">
+              <span class="material-icons" style="font-size:1.1rem">{{ supportSending ? 'hourglass_top' : 'send' }}</span>
+            </button>
+          </div>
+        </div>
+        <!-- ───── fim suporte ───── -->
+
         <!-- Bottom nav -->
         <nav class="fixed bottom-0 left-0 right-0 h-16 flex z-30"
              style="background:var(--card);border-top:1px solid var(--border);box-shadow:0 -4px 20px rgba(0,0,0,0.06)">
@@ -358,6 +432,162 @@ type View = 'search' | 'arena' | 'my-bookings' | 'profile';
       .legal-body ul { padding-left: 1.1rem; margin: 0.3rem 0 0.6rem; }
       .legal-updated { font-size: 0.68rem !important; color: var(--border) !important; }
 
+      /* ── Floating support button (booking) ── */
+      .bk-support-fab {
+        position: fixed;
+        bottom: 5rem;
+        right: 0;
+        z-index: 200;
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 50% 0 0 50%;
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: -4px 6px 24px rgba(34,197,94,0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+      }
+      .bk-support-fab:hover {
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: -4px 10px 30px rgba(34,197,94,0.5);
+      }
+      .bk-support-fab--active {
+        background: var(--muted-foreground);
+        box-shadow: -4px 4px 16px rgba(0,0,0,0.2);
+      }
+
+      /* ── Support panel ── */
+      .bk-support-panel {
+        position: fixed;
+        bottom: 8.5rem;
+        right: 0;
+        z-index: 199;
+        width: min(22rem, calc(100vw - 1rem));
+        max-height: 65vh;
+        border-radius: 1.25rem 0 0 1.25rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-right: none;
+        box-shadow: -8px 20px 60px rgba(0,0,0,0.18);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: scale(0.92) translateY(12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease;
+        transform-origin: bottom right;
+      }
+      .bk-support-panel--open {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+        pointer-events: all;
+      }
+      .bk-support-panel__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1rem 0.875rem;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        background: linear-gradient(135deg, hsl(152,69%,40%,0.06), transparent);
+      }
+      .bk-support-panel__avatar {
+        width: 2.25rem; height: 2.25rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), hsl(152,69%,30%));
+        color: white;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+      }
+      .bk-support-panel__close {
+        background: none; border: none; cursor: pointer;
+        color: var(--muted-foreground);
+        padding: 0.35rem; border-radius: 0.5rem;
+        display: flex; align-items: center;
+        transition: background 0.15s;
+      }
+      .bk-support-panel__close:hover { background: var(--muted); }
+      .bk-support-panel__body {
+        flex: 1; overflow-y: auto; padding: 0.875rem;
+        display: flex; flex-direction: column; gap: 0.6rem;
+        scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+      }
+      .bk-support-msg { display: flex; flex-direction: column; gap: 0.2rem; }
+      .bk-support-msg--out { align-items: flex-end; }
+      .bk-support-msg--in  { align-items: flex-start; }
+      .bk-support-msg__bubble {
+        max-width: 85%;
+        background: var(--muted);
+        border-radius: 1rem 1rem 1rem 0.25rem;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--foreground);
+      }
+      .bk-support-msg__bubble--out {
+        background: var(--primary);
+        color: white;
+        border-radius: 1rem 1rem 0.25rem 1rem;
+      }
+      .bk-support-msg__time {
+        font-size: 0.65rem;
+        color: var(--muted-foreground);
+        padding: 0 0.25rem;
+      }
+      .bk-support-typing {
+        display: flex; align-items: center; gap: 0.3rem;
+        padding: 0.75rem 1rem !important;
+      }
+      .bk-support-typing span {
+        width: 0.45rem; height: 0.45rem;
+        border-radius: 50%;
+        background: var(--muted-foreground);
+        animation: bk-typing-dot 1.2s ease-in-out infinite;
+      }
+      .bk-support-typing span:nth-child(2) { animation-delay: 0.2s; }
+      .bk-support-typing span:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes bk-typing-dot {
+        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+        30%            { transform: translateY(-5px); opacity: 1; }
+      }
+      .bk-support-panel__footer {
+        display: flex; align-items: flex-end; gap: 0.5rem;
+        padding: 0.75rem;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        background: var(--card);
+      }
+      .bk-support-panel__input {
+        flex: 1; resize: none;
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.85rem;
+        color: var(--foreground);
+        outline: none;
+        max-height: 6rem;
+        line-height: 1.4;
+        font-family: inherit;
+        transition: border-color 0.2s;
+      }
+      .bk-support-panel__input:focus { border-color: var(--primary); }
+      .bk-support-panel__send {
+        width: 2.5rem; height: 2.5rem; flex-shrink: 0;
+        border-radius: 50%;
+        background: var(--primary);
+        color: white; border: none; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+      .bk-support-panel__send:disabled { opacity: 0.45; cursor: not-allowed; }
+      .bk-support-panel__send:not(:disabled):hover { transform: scale(1.08); }
+
       /* ── HTTP loading overlay ── */
       .sp-overlay {
         position: fixed; inset: 0; z-index: 9999;
@@ -386,13 +616,78 @@ export class AppComponent implements OnInit {
   /** ID da reserva quando a URL é /reserva/:id (página pública) */
   publicBookingId: string | null = null;
 
+  // ── Suporte ──
+  private readonly SUPPORT_STORAGE_KEY = 'af_bk_support_chat';
+  private readonly SUPPORT_TTL_MS      = 48 * 60 * 60 * 1000;
+
+  supportOpen    = false;
+  supportInput   = '';
+  supportSending = false;
+  supportSent    = false;
+  supportError   = '';
+  supportMessages: { text: string; time: string }[] = [];
+
   constructor(
     public theme: ThemeService,
     public auth: AuthService,
     public loading: LoadingService,
     private toast: ToastService,
     private userProfile: UserProfileService,
+    private api: ApiService,
   ) {}
+
+  private loadSupportHistory(): void {
+    try {
+      const raw = localStorage.getItem(this.SUPPORT_STORAGE_KEY);
+      if (!raw) return;
+      const data: { messages: { text: string; time: string }[]; savedAt: number } = JSON.parse(raw);
+      if (Date.now() - (data.savedAt || 0) >= this.SUPPORT_TTL_MS) {
+        localStorage.removeItem(this.SUPPORT_STORAGE_KEY);
+        return;
+      }
+      this.supportMessages = data.messages || [];
+      if (this.supportMessages.length > 0) this.supportSent = true;
+    } catch { localStorage.removeItem(this.SUPPORT_STORAGE_KEY); }
+  }
+
+  private saveSupportHistory(): void {
+    try {
+      localStorage.setItem(this.SUPPORT_STORAGE_KEY, JSON.stringify({
+        messages: this.supportMessages,
+        savedAt:  Date.now(),
+      }));
+    } catch { /* quota exceeded */ }
+  }
+
+  async sendSupportMessage() {
+    const text = this.supportInput.trim();
+    if (!text || this.supportSending) return;
+
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    this.supportMessages.push({ text, time });
+    this.supportInput   = '';
+    this.supportError   = '';
+    this.supportSending = true;
+    this.supportSent    = false;
+
+    try {
+      await firstValueFrom(
+        this.api.postSilent<{ success: boolean }>('/support/message', { message: text })
+      );
+      this.supportSent = true;
+      this.saveSupportHistory();
+    } catch (err: any) {
+      this.supportMessages.pop();
+      this.supportError = err?.error?.error || 'Não foi possível enviar. Tente novamente.';
+    } finally {
+      this.supportSending = false;
+    }
+  }
+
+  onSupportEnter(e: Event) {
+    const ke = e as KeyboardEvent;
+    if (!ke.shiftKey) { e.preventDefault(); this.sendSupportMessage(); }
+  }
 
   ngOnInit() {
     // Detecta /reserva/:id — página pública sem autenticação
@@ -403,6 +698,7 @@ export class AppComponent implements OnInit {
     }
 
     this.toast.message$.subscribe(m => this.toastMsg = m);
+    this.loadSupportHistory();
 
     // Exibe card quando o perfil carrega incompleto (sem CPF ou sem celular)
     this.userProfile.profileLoaded$.subscribe(isIncomplete => {
