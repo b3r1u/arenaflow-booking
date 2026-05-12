@@ -672,7 +672,7 @@ export class AppComponent implements OnInit {
 
     try {
       await firstValueFrom(
-        this.api.postSilent<{ success: boolean }>('/support/message', { message: text })
+        this.api.postSilent<{ success: boolean }>('/support/message', { message: text, source: 'booking' })
       );
       this.supportSent = true;
       this.saveSupportHistory();
